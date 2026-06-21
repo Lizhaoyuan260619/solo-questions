@@ -102,7 +102,10 @@ React + TypeScript + Vite + Tailwind CSS（纯前端，加密存储于 localStor
 ### 5. Zettelkasten 知识图谱笔记系统
 
 **需求描述：**
-从零构建一个基于 Zettelkasten 方法论的个人知识管理Web应用，后端 Python Flask + SQLite，前端原生 HTML/CSS/JS。核心功能包括：1）笔记编辑：支持 Markdown 编写，每条笔记有唯一 ID、标题、正文、标签、创建/修改时间；2）双向链接：在正文中使用 `[[笔记ID]]` 语法自动创建笔记间引用关系，笔记底部展示所有反向链接列表；3）知识图谱可视化：用 Canvas 绘制笔记节点和引用关系的有向图，支持拖拽节点、缩放画布、点击节点跳转；4）全文搜索：对标题和正文做模糊搜索，高亮匹配关键词；5）标签聚合：按标签查看所有关联笔记；6）导出：支持将笔记及其所有双向链接递归导出为单个 Markdown 文件（保持引用关系）。
+做一个个人笔记管理网站，笔记之间可以互相引用形成知识网络。用 Python + Flask 搭后端存数据库，前端就用原生 HTML 页面不用框架。要能做这些事：1）写笔记支持 Markdown，每条笔记有唯一编号、标题、正文、标签，自动记创建和修改时间；2）在笔记正文里用 `[[笔记编号]]` 这种格式引用别的笔记，系统自动建立关联，每条笔记底部要列出有哪些笔记反过来引用了它；3）有一个知识图谱页面，用 Canvas 画笔记节点和它们之间的引用连线，节点能用鼠标拖着动，画布能缩放，点节点能跳到对应笔记；4）搜索笔记标题和正文，输入关键词模糊匹配，搜出来的结果要把匹配的词高亮标出来；5）按标签分类看笔记，点一个标签出所有带这个标签的笔记；6）把一条笔记连同它引用的所有笔记（嵌套递归）一起导出成一个 Markdown 文件，里面的引用关系要保留。
+
+**技术栈：**
+Python Flask + SQLite + 原生前端（HTML/CSS/JS）
 
 **技术与实现约束：**
 - 后端必须采用 Blueprint 模块化架构：`notes`、`graph`、`search`、`export` 四个 Blueprint，各自有独立的 routes/services/models。
@@ -117,478 +120,16 @@ React + TypeScript + Vite + Tailwind CSS（纯前端，加密存储于 localStor
 - JavaScript 使用 strict camelCase，禁止全局变量。
 
 **验证说明：**
+检查点：
 1. 启动方式：`pip install -r requirements.txt` 后 `python app.py`
-2. 功能验证：
-   - 创建 3 条互相引用的笔记（A→B→C→A），确认每条笔记底部反向链接正确
-   - 打开知识图谱页面，3个节点形成环形有向图，拖拽节点后力导向布局重新计算
-   - 搜索某条笔记正文中的关键词，结果高亮显示
-   - 导出笔记 A，生成的 Markdown 中 `[[B]]` 和 `[[C]]` 引用保留，内容完整
-3. 预期结果：双向链接逻辑正确、力导向图谱可交互、FTS5搜索响应迅速、导出格式完整。
-
----
-
-### 6. 实时协作画板
-
-**需求描述：**
-从零构建一个支持多人实时协作的在线画板Web应用，后端 Node.js + Express + Socket.io + SQLite（记录房间和操作日志），前端原生 HTML/CSS/JS + Canvas。核心功能包括：1）绘图工具：画笔（可调粗细和颜色）、橡皮擦、直线、矩形、圆形、文字输入；2）房间系统：创建房间获得邀请码，他人输入邀请码加入，房间内所有人实时看到彼此的绘制操作；3）图层系统：每个房间支持最多5个图层，可切换当前绘制图层、调整图层可见性、删除图层；4）操作历史：支持撤销（Undo）和重做（Redo），每次操作记录操作者；5）导出：将画布内容导出为 PNG 文件；6）在线用户列表：侧边栏显示当前房间在线用户和光标位置。
-
-**技术与实现约束：**
-- 撤销/重做必须使用命令模式（Command Pattern）实现，每个绘图操作封装为可执行/可撤销的命令对象，不允许用 Canvas 快照数组实现。
-- 图层管理逻辑必须封装到独立文件 `layer-manager.js`，Canvas 绑定和渲染逻辑封装到 `canvas-renderer.js`，主入口只做初始化和事件绑定。
-- Socket.io 事件处理必须按职责拆分：`socket/drawing.js`（绘图事件）、`socket/room.js`（房间事件）、`socket/history.js`（撤销重做事件），不允许全部写在一个文件里。
-- 房间数据在服务端用 SQLite 持久化（房间信息+操作日志），服务器重启后重新加入房间可恢复历史绘制内容。
-- 前端必须使用 ES6 模块，UI 状态管理使用发布-订阅模式（Pub/Sub），不允许在 Canvas 事件回调里直接操作 DOM。
-
-**代码规范：**
-- JavaScript 遵守 ESLint 推荐规则，strict camelCase。
-- 所有函数必须有 JSDoc 注释。
-- 后端 Socket.io 事件名必须使用 `room:join`、`drawing:stroke`、`history:undo` 等命名空间格式，不允许裸事件名。
-
-**验证说明：**
-1. 启动方式：`npm install` 后 `npm start`
-2. 功能验证：
-   - 浏览器打开两个标签页，创建房间后另一个用邀请码加入，在一方画线另一方实时看到
-   - 画3笔后点撤销2次，再点重做1次，画布状态正确
-   - 切换到第2图层绘制，隐藏第1图层后第1图层内容不显示，重新显示后内容恢复
-   - 导出 PNG 文件可正常打开查看
-   - 重启服务器后重新加入房间，历史绘制内容恢复
-3. 预期结果：实时同步延迟<200ms、命令模式撤销重做正确、图层切换无误、数据持久化生效。
-
----
-
-### 7. 习惯追踪与数据可视化平台
-
-**需求描述：**
-从零构建一个个人习惯追踪Web应用，后端 Python Flask + SQLite，前端原生 HTML/CSS/JS。核心功能包括：1）习惯管理：创建习惯（名称、目标频率如"每周3次"、图标、颜色标记），支持分类（健康/学习/工作/生活）；2）每日打卡：点击完成当日打卡，显示连续天数和总完成次数，漏打时连续天数归零重新计算；3）日历热力图：以 GitHub 贡献图风格展示全年打卡热力图，颜色深浅表示当日完成习惯数量；4）统计面板：周/月/年维度的完成率、连续天数趋势折线图、分类完成占比饼图、最佳/最差习惯排名；5）数据导出：支持导出为 CSV 和 JSON 两种格式；6）提醒设置：每个习惯可设置提醒时间，到时弹出浏览器通知（Notification API）。
-
-**技术与实现约束：**
-- 后端必须采用三层架构：`routes/` → `services/` → `models/`，SQL 查询只在 models 层出现。
-- 日历热力图算法必须封装到独立文件 `static/js/heatmap.js`，该模块对外只暴露 `render(containerId, data, options)` 一个接口，不允许在 HTML 中直接操作 Canvas。
-- 统计图表必须使用 Canvas 自行绘制，不允许引入 Chart.js/ECharts 等图表库。折线图、饼图分别封装为 `line-chart.js` 和 `pie-chart.js` 独立模块。
-- 连续天数计算必须封装为 service 层的独立函数 `calc_streak(habit_id)`，该函数必须有完整的单元测试（使用 pytest）。
-- Flask 使用 Blueprint 拆分：`habits`、`stats`、`export` 三个 Blueprint。
-- 前端使用 ES6 模块，所有 API 调用封装到 `api.js`。
-
-**代码规范：**
-- Python 遵守 PEP 8，所有函数/类必须有 Google 风格 docstring（包含 Args、Returns、Raises）。
-- JavaScript strict camelCase，JSDoc 注释。
-- 单元测试放在 `tests/` 目录，使用 pytest，至少覆盖连续天数计算、完成率计算、导出格式三个核心函数。
-
-**验证说明：**
-1. 启动方式：`pip install -r requirements.txt` 后 `python app.py`
-2. 功能验证：
-   - 创建3个不同分类的习惯，连续打卡5天，热力图对应日期颜色变深
-   - 第6天不打卡，第7天再打卡，确认连续天数归零后重新从1开始
-   - 查看月度统计，完成率、趋势图、饼图数据与手动计算一致
-   - 导出 CSV 文件，用 Excel 打开数据完整无误
-   - 设置提醒后到时间触发浏览器通知
-3. 预期结果：三层架构清晰、热力图渲染正确、连续天数计算有单元测试覆盖、统计图表手绘无外部依赖。
-
----
-
-### 8. 端到端加密通信终端
-
-**需求描述：**
-从零构建一个命令行端到端加密通信工具，Node.js 开发，SQLite 存储密钥和消息记录。核心功能包括：1）密钥管理：生成 RSA-2048 密钥对（公钥/私钥），支持导入/导出 PEM 格式密钥文件，列出本地所有密钥对及其指纹；2）加密消息：输入对方公钥文件路径和明文消息，程序用 AES-256-CBC 加密消息正文，再用对方 RSA 公钥加密 AES 密钥，输出加密包（Base64 编码的 JSON 文件）；3）解密消息：输入加密包文件和自己的私钥路径，先用 RSA 私钥解密 AES 密钥，再用 AES 密钥解密消息正文，输出明文；4）数字签名：用私钥对消息做 SHA-256 签名，验证时用公钥校验签名真伪；5）安全删除：提供 `shred` 命令，对指定文件执行3次随机覆写后删除，防止数据恢复；6）通信录：本地 SQLite 存储联系人（昵称+公钥路径），加密消息时可直接指定联系人名而非路径。
-
-**技术与实现约束：**
-- 加密/解密/签名逻辑必须封装到独立文件 `crypto-engine.js` 作为服务层，主入口 `index.js` 只负责 CLI 参数解析和调用服务层，不允许把加密算法写到 CLI 入口文件中。
-- 加密包格式必须采用固定的 JSON 结构：`{ version, alg, iv, encrypted_key, ciphertext, signature? }`，不允许自定义二进制格式。
-- 密钥派生必须使用 Node.js 内置 `crypto.generateKeyPairSync` 和 `crypto.publicEncrypt/privateDecrypt`，不允许引入第三方加密库如 `tweetnacl`。
-- 安全删除算法必须封装为独立函数 `secureDelete(filePath, passes)`，passes 参数默认为3。
-- 通信录数据访问必须封装为 Repository 模式的 `ContactRepository` 类。
-- CLI 参数解析使用 `commander`，帮助信息必须完整覆盖所有子命令和选项。
-
-**代码规范：**
-- JavaScript 遵守 ESLint 推荐规则，strict camelCase。
-- 所有对外暴露的函数必须有 JSDoc 注释（包含 @param、@returns、@throws）。
-- 加密引擎的所有核心函数必须有对应的单元测试（使用 Jest 或 Node 内置 test runner）。
-
-**验证说明：**
-1. 启动方式：`npm install` 后 `node index.js --help`
-2. 功能验证命令：
-   - `node index.js keygen --name alice` 生成 Alice 密钥对
-   - `node index.js keygen --name bob` 生成 Bob 密钥对
-   - `node index.js encrypt --to bob --message "Hello Bob"` 输出加密包文件
-   - `node index.js decrypt --input encrypted_msg.json --key bob` 解密输出 "Hello Bob"
-   - `node index.js sign --key alice --message "Important document"` 生成签名
-   - `node index.js verify --key alice --message "Important document" --sig signature.json` 验证签名
-   - `node index.js shred sensitive.txt` 安全删除文件
-3. 预期结果：RSA+AES 混合加密解密正确、签名验证通过/失败判定准确、安全删除后文件不可恢复、通信录联系人加解密流程顺畅。
-
----
-
-### 9. 中英文文本分析与词频统计引擎
-
-**需求描述：**
-从零构建一个命令行文本分析工具，Python 开发，SQLite 存储分析历史记录。核心功能包括：1）中文分词与词频统计：使用 jieba 分词，输出 Top N 高频词及其出现次数，支持自定义停用词表文件；2）英文分词与词频统计：按空格和标点分词，自动转小写，支持 Porter Stemming 词干提取；3）TF-IDF 计算：输入多篇文章，计算每篇文章中各词的 TF-IDF 值，输出每篇 Top 10 关键词；4）文本相似度：用余弦相似度比较两篇文章的 TF-IDF 向量，输出相似度百分比；5）词云生成：基于词频数据生成 PNG 词云图（使用 wordcloud 库），支持自定义宽高和背景色；6）分析报告：将所有统计结果输出为 HTML 报告文件（内嵌 CSS 样式），包含词频表格、TF-IDF 表格、相似度矩阵、词云图片；7）批量模式：从目录读取多个 .txt 文件批量分析，结果汇总到单份报告中。
-
-**技术与实现约束：**
-- 文本分析逻辑必须按 Pipeline 模式组织：`Reader → Tokenizer → Analyzer → Reporter`，每个阶段独立封装，主入口按顺序调用 Pipeline 各阶段。
-- 中文分词器 `ChineseTokenizer` 和英文分词器 `EnglishTokenizer` 必须继承自同一个抽象基类 `BaseTokenizer`（使用 `abc.ABC`），对外暴露统一的 `tokenize(text) -> list[str]` 接口。
-- TF-IDF 计算逻辑必须封装到独立文件 `tfidf.py`，不允许和分析逻辑混在一起。
-- HTML 报告生成必须使用 Jinja2 模板，不允许用 f-string 拼接 HTML。
-- SQLite 只存分析历史元数据（文件名、时间、参数），不存分析结果全文。
-- 必须支持 `--verbose` 参数输出处理进度。
-
-**代码规范：**
-- Python 遵守 PEP 8，所有函数/类必须有 Google 风格 docstring（包含 Args、Returns、Raises）。
-- 使用 type hints 标注所有公开函数的参数和返回值。
-- 单元测试使用 pytest，至少覆盖：中文分词、英文 Stemming、TF-IDF 计算、余弦相似度四个核心函数。
-
-**验证说明：**
-1. 启动方式：`pip install -r requirements.txt` 后 `python analyze.py --help`
-2. 功能验证命令：
-   - `python analyze.py freq --input article_cn.txt --lang zh --top 20 --stopwords stopwords.txt`
-   - `python analyze.py tfidf --input ./articles/ --top 10`
-   - `python analyze.py similarity --input article1.txt article2.txt`
-   - `python analyze.py wordcloud --input article_cn.txt --output cloud.png --width 800 --height 400`
-   - `python analyze.py report --input ./articles/ --output report.html`
-3. 预期结果：中文分词准确、TF-IDF 关键词合理、相似度数值在 0-1 范围内、词云图片正常生成、HTML 报告可浏览器打开且样式正确。
-
----
-
-### 10. 智能文件组织与规则引擎
-
-**需求描述：**
-从零构建一个基于规则引擎的智能文件整理命令行工具，Node.js 开发，SQLite 存储规则配置和操作日志。核心功能包括：1）规则定义：每条规则包含匹配条件（文件扩展名/文件名包含/文件大小范围/修改日期范围/子串正则匹配）和执行动作（移动到指定目录/重命名/压缩为zip/复制备份），条件之间支持 AND/OR/NOT 组合；2）规则引擎：扫描指定目录，对所有文件逐一匹配规则链，命中的文件执行对应动作；3）冲突检测：执行前检查目标路径是否已存在同名文件，冲突时自动追加序号而非覆盖；4）干运行模式：`--dry-run` 只输出将要执行的操作列表，不实际修改文件系统；5）操作日志：每次运行的所有文件操作记录到 SQLite（源路径、目标路径、操作类型、时间戳、是否成功）；6）撤销功能：`--undo` 读取最近一次运行的操作日志，逆序执行反向操作（移动→移回、重命名→原名、复制→删除副本），实现一键撤回；7）预设模板：内置5组常用规则模板（"按扩展名分类到子目录"、"按月份归档照片"、"清理临时文件"、"音乐文件按艺术家整理"、"下载目录自动整理"），用户可一键加载模板后微调。
-
-**技术与实现约束：**
-- 规则引擎必须使用责任链模式（Chain of Responsibility）实现：每条规则是一个处理器，文件依次经过所有处理器，命中的执行动作并标记 `handled`。
-- 规则匹配条件的 AND/OR/NOT 组合必须用组合模式（Composite Pattern）实现，`Condition` 为抽象基类，`AndCondition`、`OrCondition`、`NotCondition` 为组合类，`ExtensionCondition`、`NameCondition` 等为叶子类。
-- 文件系统操作必须封装到 `FileOperator` 类中（Repository 模式），不允许在规则处理器中直接调用 `fs.rename`/`fs.copyFile`，必须通过 `FileOperator` 间接调用。
-- 操作日志的撤销逻辑封装到 `UndoManager` 类，读取日志并生成反向操作序列。
-- CLI 使用 `commander` 库解析参数，规则配置以 JSON 文件格式存储。
-- 所有规则模板定义在 `templates.js` 中，每个模板是一个返回规则数组的工厂函数。
-
-**代码规范：**
-- JavaScript 遵守 ESLint 推荐规则，strict camelCase。
-- 所有类和公开函数必须有 JSDoc 注释。
-- FileOperator 的每个方法必须有对应的单元测试（使用 Jest 或 Node 内置 test runner，用临时目录测试）。
-
-**验证说明：**
-1. 启动方式：`npm install` 后 `node organize.js --help`
-2. 功能验证命令：
-   - `node organize.js template --list` 列出所有预设模板
-   - `node organize.js template --apply "按扩展名分类" --target ./messy_dir --dry-run`
-   - `node organize.js run --rules rules.json --target ./messy_dir`
-   - `node organize.js undo` 撤销上一次操作
-   - `node organize.js log` 查看操作日志
-3. 预期结果：责任链规则匹配正确、组合模式条件组合灵活、干运行不修改文件、撤销操作能完整恢复原状、操作日志完整可追溯。
-
----
-
-### 11. 终端仪表盘渲染框架
-
-**需求描述：**
-从零构建一个 Node.js 终端仪表盘渲染框架（库），供其他 CLI 程序调用，附带完整示例。核心功能包括：1）组件体系：内置6种组件——进度条（BarChart）、折线图（LineChart）、柱状图（Sparkline）、表格（Table）、仪表盘（Gauge）、文字标签（Label）；2）布局系统：支持网格布局，用户指定行列数和各组件占位，框架自动计算渲染坐标，多组件并行刷新互不干扰；3）实时数据绑定：组件通过 `setData(data)` 接收更新，使用观察者模式通知重绘，支持外部定时推送数据模拟实时监控；4）主题系统：内置3套主题（默认暗色、浅色、Solarized），每个主题定义颜色映射表，用户可通过 `setTheme(name)` 一键切换；5）终端兼容：自动检测终端尺寸变化，窗口缩放后布局自适应重排；6）示例脚本：提供 `demo.js` 演示所有组件类型、多组件布局、实时数据更新、主题切换效果。
-
-**技术与实现约束：**
-- 组件体系必须使用模板方法模式（Template Method Pattern）：`BaseWidget` 抽象类定义 `render()` 骨架（计算尺寸→清空区域→绘制内容→刷新输出），子类只实现 `drawContent()` 钩子方法。
-- 组件创建必须使用工厂模式（Factory Pattern）：`WidgetFactory.create(type, options)` 根据类型字符串创建对应组件实例，调用方不直接 `new` 具体组件类。
-- 观察者模式实现数据绑定：`DataSubject` 持有观察者列表，数据变更时通知所有订阅组件重绘；组件实现 `DataObserver` 接口的 `onDataUpdate(data)` 方法。
-- 布局算法封装到 `LayoutManager` 类，接收网格定义和终端尺寸，输出每个组件的 `{x, y, width, height}` 坐标。
-- 不允许使用 `blessed`、`ink`、`terminal-kit` 等终端 UI 框架，只能用 `process.stdout.write` + ANSI 转义码自绘。
-- 库的公共 API 必须清晰简洁：`Dashboard.create(config)` → `dashboard.addWidget(type, options)` → `dashboard.update(id, data)` → `dashboard.render()`。
-
-**代码规范：**
-- JavaScript 遵守 ESLint 推荐规则，strict camelCase。
-- 所有类和公开方法必须有 JSDoc 注释。
-- 每个组件类必须有独立的单元测试文件，验证渲染输出字符串包含预期 ANSI 序列。
-
-**验证说明：**
-1. 启动方式：`npm install` 后 `node demo.js`
-2. 功能验证：
-   - 运行 demo.js，终端同时显示6种组件，数据每秒自动更新
-   - 缩放终端窗口，布局自适应重排，组件不重叠不溢出
-   - 主题切换后所有组件颜色同步更新
-   - 手动调用 `WidgetFactory.create('gauge', {label:'CPU', max:100})` 能正确创建仪表盘组件
-3. 预期结果：模板方法+工厂+观察者三种设计模式正确落地、6种组件渲染效果清晰、布局自适应、主题切换即时生效。
-
----
-
-### 12. 色彩设计与无障碍检测平台
-
-**需求描述：**
-从零构建一个纯前端色彩设计与无障碍合规检测Web应用，原生 HTML/CSS/JS。核心功能包括：1）配色方案生成：输入一个基础 HEX 颜色，自动生成6种色彩和谐方案（互补色、分裂互补色、类似色、三角色、四角色、单色渐变），每种方案展示5-7个色块，点击色块复制 HEX 值到剪贴板；2）WCAG 对比度检测：输入前景色和背景色，计算对比度比值，判定是否满足 WCAG 2.1 的 AA/AAA 级别（正常文字和大文字分别评判），用色条可视化展示对比度所在区间；3）色盲模拟：对当前配色方案进行3种色盲类型模拟（红色盲 Protanopia、绿色盲 Deuteranopia、蓝色盲 Tritanopia），用并排对比展示正常视图和色盲视图的差异；4）CSS 变量导出：选中配色方案后一键导出为 CSS 自定义属性格式（`:root { --primary: #xxx; ... }`），可复制可下载为 .css 文件；5）渐变编辑器：可视化创建双色/三色 CSS 渐变，实时预览，拖拽色标调整位置，输出 CSS `linear-gradient` 代码；6）颜色历史：localStorage 存储最近使用的30个颜色，可快速回用。
-
-**技术与实现约束：**
-- 色彩空间转换算法（RGB ↔ HSL ↔ HSV）必须封装到独立模块 `color-math.js`，UI 代码不允许内联计算逻辑。
-- 6种色彩和谐方案必须使用策略模式实现：`HarmonyStrategy` 抽象类定义 `generate(baseColor) => Color[]` 接口，`ComplementaryStrategy`、`TriadicStrategy` 等为具体策略类，由 `HarmonyGenerator` 上下文类调用。
-- WCAG 对比度计算公式必须封装到 `contrast-checker.js`，该模块同时提供 `getRatio(fg, bg) => number` 和 `getLevel(ratio, isLargeText) => {aa: bool, aaa: bool}` 两个函数。
-- 色盲模拟矩阵必须封装到 `color-blind.js`，使用标准的色彩空间线性变换矩阵，不允许硬编码转换结果。
-- 前端必须使用 ES6 模块，所有 UI 更新通过发布-订阅模式驱动，不允许在 DOM 事件回调中直接操作其他 DOM 元素。
-- 不允许引入任何第三方 UI 库或 CSS 框架（禁用 Tailwind/Bootstrap），所有样式手写。
-
-**代码规范：**
-- JavaScript strict camelCase，JSDoc 注释覆盖所有公开函数。
-- CSS 使用 BEM 命名规范（`.block__element--modifier`）。
-
-**验证说明：**
-1. 启动方式：浏览器打开 `index.html`
-2. 功能验证：
-   - 输入 #1a73e8，6种方案色块数量和色值符合色彩学规则（互补色应为对角位置）
-   - 输入前景 #ffffff 背景 #1a73e8，对比度比值与在线 WCAG 检测工具结果一致，AA/AAA 判定准确
-   - 切换到红色盲模拟，配色方案色块变为红绿色盲视角下的颜色
-   - 渐变编辑器拖拽色标后实时预览更新，导出的 CSS 代码可直接粘贴使用
-   - 导出 CSS 变量文件，内容格式正确
-3. 预期结果：色彩计算数学准确、策略模式6种方案独立可扩展、WCAG判定与标准一致、色盲模拟视觉正确、所有交互零延迟。
-
----
-
-### 13. 安全审计与合规扫描框架
-
-**需求描述：**
-从零构建一个命令行安全审计框架，Python 开发，SQLite 存储扫描历史。核心功能包括：1）密码强度审计：多维评分（长度、字符多样性、常见弱密码黑名单50+、连续/重复字符检测、键盘序列检测如qwert/12345），输出弱/中/强/极强四级评定+具体改进建议列表；2）文件权限扫描：递归扫描指定目录，检测权限过于宽松的文件（如 Unix 下 777/666，Windows 下 Everyone 完全控制），列出风险文件清单；3）敏感信息扫描：用正则扫描文本文件中可能泄露的密钥/令牌（AWS Key、GitHub Token、私钥头 `-----BEGIN RSA`、硬编码IP/密码模式），输出匹配文件和行号；4）依赖漏洞检查：解析 `package.json`（npm）和 `requirements.txt`（pip）中的依赖，对照内置 CVE 缩略库（JSON文件，预置100条常见高危依赖CVE）检查已知漏洞依赖；5）HTML 审计报告：所有扫描结果汇总输出为自包含 HTML 报告（内嵌 CSS+JS），按风险等级（高/中/低）分色展示，支持折叠展开详情；6）插件架构：每种扫描器是独立插件，用户可通过 `--scanners` 参数选择执行哪些扫描器，默认全部执行。
-
-**技术与实现约束：**
-- 扫描器插件必须使用插件架构：定义 `BaseScanner` 抽象基类（`abc.ABC`），包含 `name` 属性和 `scan(target) -> ScanResult` 抽象方法，`PasswordScanner`、`PermissionScanner`、`SensitiveInfoScanner`、`DependencyScanner` 为具体子类。
-- 扫描器注册必须使用自注册模式：每个扫描器类在模块末尾调用 `ScannerRegistry.register(ScannerClass)`，主程序通过 `ScannerRegistry.get_all()` 获取所有已注册扫描器，新增扫描器无需修改主程序代码。
-- HTML 报告生成必须使用 Jinja2 模板引擎，不允许用 f-string 拼接 HTML。
-- 敏感信息正则必须封装到 `patterns.py` 配置文件中，每条正则有 `name`、`pattern`、`severity`、`description` 四个字段，便于后续扩展新规则。
-- SQLite 存储每次扫描的元数据（时间、目标、各扫描器结果摘要），不存扫描全文。
-- 必须支持 `--verbose` 参数实时输出扫描进度。
-
-**代码规范：**
-- Python 遵守 PEP 8，type hints 标注所有公开函数。
-- 所有类和函数必须有 Google 风格 docstring（包含 Args、Returns、Raises）。
-- 单元测试使用 pytest，至少覆盖：密码评分逻辑、敏感信息正则匹配、依赖版本比较三个核心函数。
-
-**验证说明：**
-1. 启动方式：`pip install -r requirements.txt` 后 `python audit.py --help`
-2. 功能验证命令：
-   - `python audit.py password --check "P@ssw0rd"` 输出评分和建议
-   - `python audit.py scan --target ./project --scanners sensitive,dependency` 扫描指定目录
-   - `python audit.py scan --target ./project --output report.html` 生成HTML报告
-   - `python audit.py history` 查看历史扫描记录
-3. 预期结果：插件架构可自由组合扫描器、自注册机制新增扫描器零侵入、HTML报告分级着色清晰、敏感信息正则匹配无漏报。
-
----
-
-### 14. 多格式数据转换与校验管道
-
-**需求描述：**
-从零构建一个数据格式转换与校验工具，同时提供浏览器版和 Node.js 命令行版。核心功能包括：1）格式互转：支持 JSON ↔ YAML ↔ TOML ↔ CSV 四种格式的双向转换；2）JSON Schema 校验：提供 JSON 数据和 Schema 文件，输出校验结果（通过/失败+具体错误路径和原因）；3）数据差异对比：输入两份同格式数据，输出结构化差异（新增/删除/修改的字段路径和前后值），前端用并排高亮展示；4）转换管道：支持链式转换如 `CSV → JSON → YAML`，通过 `-p` 参数指定管道序列；5）自定义映射：用户可编写简单的字段映射规则（重命名字段、嵌套展开/折叠、类型转换），转换时自动应用；6）批量处理：CLI 支持从目录批量读取文件并转换，输出到指定目录。双模式共用核心转换逻辑模块。
-
-**技术与实现约束：**
-- 转换管道必须使用管道模式（Pipeline Pattern）实现：`Pipeline` 类接收一组 `TransformStep`，数据依次流经每个步骤，每个步骤输入上一步输出。`JsonToYamlStep`、`YamlToTomlStep` 等为具体步骤类。
-- 每种格式的解析器和序列化器必须使用适配器模式（Adapter Pattern）统一接口：`FormatAdapter` 抽象类定义 `parse(content) => data` 和 `serialize(data) => content`，具体适配器实现各自格式的解析/序列化逻辑。
-- JSON Schema 校验逻辑封装到 `schema-validator.js` 独立模块，不允许内联在转换逻辑中。
-- 差异对比算法封装到 `differ.js`，输出结构为 `{added: [], removed: [], modified: []}`，前端根据此结构渲染高亮。
-- 前端与 CLI 共用代码必须放在 `core/` 目录，前端入口 `index.html`（通过 `<script type="module">` 引用）、CLI 入口 `cli.js`（通过 `require` 或 `import` 引用），入口文件不允许包含核心逻辑。
-- 不允许引入 ajv 等第三方 JSON Schema 校验库，必须自行实现基础校验（type/required/properties/minLength/maxLength/pattern/enum 七个关键字）。
-
-**代码规范：**
-- JavaScript strict camelCase，ES6 模块。
-- 所有公开函数和类必须有 JSDoc 注释。
-- 核心模块（管道、适配器、校验器、差异对比）各有独立的单元测试文件。
-
-**验证说明：**
-1. 浏览器版：打开 `index.html`，粘贴一段 JSON 转换为 YAML 再转回 JSON，内容一致；输入不合规 JSON 数据和 Schema，校验结果指出具体错误字段和原因；两份 JSON 差异对比，新增/删除/修改字段分别高亮。
-2. CLI版命令：
-   - `node cli.js convert input.json --from json --to yaml`
-   - `node cli.js validate data.json --schema schema.json`
-   - `node cli.js diff a.json b.json`
-   - `node cli.js pipeline input.csv -p "csv2json,json2yaml"`
-   - `node cli.js batch ./data/ --from json --to yaml --outdir ./output/`
-3. 预期结果：管道模式链式转换准确、适配器模式格式切换无缝、自实现Schema校验七个关键字全覆盖、差异对比结构化输出正确。
-
----
-
-### 15. 终端个人财务分析引擎
-
-**需求描述：**
-从零构建一个命令行个人财务分析工具，Python 开发，SQLite 存储。核心功能包括：1）交易记录管理：支持手动添加和从 CSV/OFX 文件批量导入交易记录（日期、金额、类型收入/支出、分类、备注），自动去重（按日期+金额+备注指纹）；2）分类规则引擎：用户可定义自动分类规则（如"备注包含'星巴克'→分类为'咖啡'"），规则按优先级顺序匹配，命中即停止；3）月度/年度财务报表：收入支出汇总、分类占比、净储蓄率、环比增长率；4）预算管理：为每个分类设定月度预算，实时对比实际支出，超预算标红警告；5）趋势预测：基于近6个月数据用简单线性回归预测下月支出，输出预测值和置信区间；6）可视化报表：输出终端 ASCII 柱状图（月度收支对比）和饼图（分类占比），同时支持导出 HTML 图表报告（用 matplotlib 生成图片内嵌到 HTML）。
-
-**技术与实现约束：**
-- 分类规则引擎必须使用责任链模式实现：每条规则是一个处理器，交易记录依次经过规则链，第一条命中的规则决定分类，后续规则不再执行。
-- CSV 导入逻辑必须封装到 `importers/` 目录，每种格式（CSV、OFX）一个导入器类，继承自 `BaseImporter` 抽象基类，统一暴露 `import(file_path) -> list[Transaction]` 接口。
-- 趋势预测算法封装到 `predictor.py`，使用最小二乘法线性回归，不允许引入 scikit-learn，只能用 numpy 或纯 Python 实现。
-- 报表生成使用策略模式：`ReportStrategy` 定义 `generate(data, output_format) => str` 接口，`TerminalReportStrategy` 和 `HtmlReportStrategy` 为两种具体策略。
-- Flask Blueprint 拆分：`transactions`、`budgets`、`reports`、`predict` 四个 Blueprint。
-- 前端无，纯 CLI。
-
-**代码规范：**
-- Python 遵守 PEP 8，type hints 全覆盖。
-- Google 风格 docstring（包含 Args、Returns、Raises）。
-- pytest 单元测试覆盖：分类规则引擎匹配逻辑、CSV 导入去重、线性回归预测值、预算超限判定。
-
-**验证说明：**
-1. 启动方式：`pip install -r requirements.txt` 后 `python finance.py --help`
-2. 功能验证命令：
-   - `python finance.py import transactions.csv --format csv`
-   - `python finance.py add --date 2026-06-20 --amount -35.5 --note "星巴克拿铁"` 自动分类为"咖啡"
-   - `python finance.py budget set --category 餐饮 --monthly 2000`
-   - `python finance.py report --month 2026-06 --format terminal`
-   - `python finance.py predict --category 餐饮`
-   - `python finance.py report --year 2026 --format html --output report.html`
-3. 预期结果：责任链规则匹配优先级正确、CSV导入自动去重、预算超限标红、线性回归预测值合理、终端ASCII图表和HTML报告均可正常输出。
-
----
-
-### 16. 交互式算法可视化平台
-
-**需求描述：**
-从零构建一个纯前端算法可视化学习平台，原生 HTML/CSS/JS + Canvas。核心功能包括：1）排序算法可视化：冒泡排序、选择排序、插入排序、快速排序、归并排序、堆排序，数组元素用柱状图表示，每一步操作（比较、交换、插入）都有对应颜色高亮和动画；2）图算法可视化：BFS、DFS、Dijkstra 最短路径，用户可在 Canvas 上点击创建节点和边，设置边权重，选择起始节点运行算法，访问顺序用颜色渐变标记；3）控制面板：速度滑块（0.5x~5x）、暂停/继续/单步执行/重置、自定义输入数据（手动输入数组或图结构）；4）算法说明面板：每个算法配有时间复杂度、空间复杂度、稳定性说明和伪代码，与可视化步骤同步高亮当前执行的伪代码行；5）对比模式：选择两种排序算法同时运行在同一数据集上，并排展示执行过程，统计总比较次数和交换次数；6）历史记录：localStorage 保存最近10次可视化的算法和数据配置，可快速回放。
-
-**技术与实现约束：**
-- 每种排序算法必须使用策略模式实现：`SortStrategy` 抽象类定义 `async execute(array, onStep)` 接口，具体策略类实现各自算法逻辑，每一步通过 `onStep` 回调通知 UI 更新。`SortVisualizer` 上下文类持有当前策略并调用。
-- 图算法同样使用策略模式：`GraphStrategy` 定义 `async execute(graph, startNode, onStep)` 接口。
-- 算法执行必须使用 JavaScript 生成器函数（`function*`）实现步骤控制：每个 `yield` 代表一个可视化步骤，暂停/继续/单步通过生成器的 `next()` 控制。
-- Canvas 绘制逻辑封装到 `canvas-renderer.js`，排序渲染器和图渲染器分别封装，不允许在算法策略类中直接操作 Canvas。
-- 所有算法数据（数组、图结构）封装到 `data-model.js`，使用观察者模式通知 UI 数据变化。
-- 不允许引入任何第三方可视化库或 CSS 框架。
-
-**代码规范：**
-- JavaScript strict camelCase，ES6 模块，JSDoc 注释。
-- CSS 使用 BEM 命名规范。
-- 每个算法策略类必须有独立的单元测试，验证排序结果正确性和步骤数量。
-
-**验证说明：**
-1. 启动方式：浏览器打开 `index.html`
-2. 功能验证：
-   - 选择"快速排序"，输入 [5,3,8,1,9,2]，点击运行，观察每一步柱状图颜色变化和交换动画
-   - 暂停后点单步执行，验证每次只前进一步
-   - 切换到图算法模式，创建5个节点和6条边，运行 Dijkstra，观察最短路径高亮
-   - 对比模式选择冒泡 vs 快速排序，同一数据集同时运行，快速排序交换次数明显少于冒泡
-   - 算法说明面板的伪代码行与当前执行步骤同步高亮
-3. 预期结果：策略模式6种排序+3种图算法独立可扩展、生成器函数步骤控制精确、Canvas绘制流畅无闪烁、对比模式数据统计准确。
-
----
-
-### 17. 二维码与条形码综合生成平台
-
-**需求描述：**
-从零构建一个码制生成与解析平台，同时提供浏览器版和 Node.js 命令行版。核心功能包括：1）QR码生成：输入文本/URL，支持纠错级别（L/M/Q/H）、尺寸、前景色背景色、内嵌 Logo 图片（Logo 区域自动提升纠错级别以保证可识别）；2）条形码生成：支持 Code 128、EAN-13、Code 39 三种编码，输入数字/文本自动选择编码方案，支持尺寸和颜色自定义；3）码制解析：前端支持上传图片文件识别 QR 码和条形码内容，CLI 支持从本地图片文件解析；4）标签排版：生成 A4 尺寸的标签排版 PDF（300 DPI），用户选择码制类型+数量+标签尺寸，自动排列到 A4 页面上，支持出血裁切线；5）批量生成：CLI 从文本文件每行一条内容批量生成码制图片，按序号命名输出到指定目录；6）批量解析：CLI 从目录批量读取图片文件，输出解析结果到 CSV 文件（文件名,码制类型,解析内容）。
-
-**技术与实现约束：**
-- 码制创建必须使用工厂模式：`CodeFactory.create(type, data, options)` 根据类型字符串（'qr'、'code128'、'ean13'、'code39'）创建对应生成器实例，调用方不直接 `new` 具体类。
-- 标签排版算法必须使用策略模式：`LayoutStrategy` 定义 `layout(items, pageSize) => LayoutResult`，`GridStrategy`（均匀网格）、`OptimalStrategy`（紧凑排列）为两种具体策略。
-- PDF 生成必须使用 `pdfkit`，不允许引入 `puppeteer` 等浏览器方案生成 PDF。
-- QR 码生成可使用 `qrcode` 库，条形码生成可使用 `jsbarcode`（浏览器）或 `bwip-js`（Node），解析可使用 `jsQR` 和 `zbar.wasm`。
-- 前端与 CLI 共用代码放在 `core/` 目录，浏览器入口 `index.html`，CLI 入口 `cli.js`。
-- 前端必须使用 ES6 模块，Canvas 绘制逻辑封装到 `canvas-renderer.js`。
-
-**代码规范：**
-- JavaScript strict camelCase，ES6 模块，JSDoc 注释。
-- 工厂模式和策略模式的类必须有完整的单元测试。
-
-**验证说明：**
-1. 浏览器版：打开 `index.html`，输入 URL 生成 QR 码（带 Logo），手机扫码可识别；生成 EAN-13 条形码，扫描枪可读取；上传一张 QR 码图片，解析内容正确；生成 A4 排版 PDF 可下载打开。
-2. CLI版命令：
-   - `node cli.js generate qr "https://example.com" -o qr.png --ec H --logo logo.png`
-   - `node cli.js generate barcode "5901234123457" --type ean13 -o barcode.png`
-   - `node cli.js decode qr_photo.png`
-   - `node cli.js layout --type qr --count 30 --label-size 30x20mm -o labels.pdf`
-   - `node cli.js batch-generate urls.txt --type qr --outdir ./qr_output/`
-   - `node cli.js batch-decode ./images/ -o results.csv`
-3. 预期结果：工厂模式4种码制创建灵活、策略模式2种排版算法可选、带Logo QR码仍可识别、PDF排版300 DPI符合印刷要求、批量生成/解析效率可接受。
-
----
-
-### 18. 智能间隔重复背单词系统
-
-**需求描述：**
-从零构建一个命令行英语背单词系统，Python 开发，SQLite 存储。核心功能包括：1）词库管理：手动添加单词条目（单词、音标、中文释义、英文例句、标签如四级/六级/雅思），支持从 CSV 批量导入（表头固定）；2）SM-2 间隔重复算法：复习时展示中文释义和例句，用户回忆后按空格显示英文答案，自评5级（0=完全忘记~4=极易回忆），算法根据评分计算下次复习日期和重复间隔；3）每日待复习队列：按到期日排序，支持按标签筛选复习范围，逾期未复习的词自动提升优先级；4）词根词缀分析器：内置50个常见词根词缀（如 un-/re-/pre-/tion/-ment/-able），对单词自动拆解词根词缀并展示构词逻辑辅助记忆；5）错题本：评分0-1的词自动进入错题本，错题本内的词不受 SM-2 间隔限制，每天额外出现一次直到连续3次评分≥2；6）学习统计：总词汇量、今日新学/复习数、7天正确率趋势（终端 ASCII 折线图）、各标签掌握度排名、SM-2 预测未来7天每日待复习量。
-
-**技术与实现约束：**
-- SM-2 算法必须封装到独立文件 `sm2.py`，对外只暴露 `calculate_next_review(quality, card) => Card` 函数，不允许在业务逻辑中直接操作间隔计算。该函数必须有完整单元测试，覆盖 quality 0-4 全部5种情况的间隔和易度因子变化。
-- 词根词缀分析器必须使用策略模式：`MorphemeStrategy` 定义 `analyze(word) => MorphemeResult`，`PrefixStrategy` 和 `SuffixStrategy` 为两种具体策略，`MorphemeAnalyzer` 上下文类依次调用两种策略并合并结果。
-- 数据访问层使用 Repository 模式：`WordRepository`、`ReviewRepository`、`MistakeBookRepository` 三个类，服务层通过 Repository 访问数据，不允许在服务层写 SQL。
-- CSV 导入器封装到 `importers/csv_importer.py`，必须处理编码检测（chardet）、表头校验、行级错误容错（跳过错误行并记录行号）。
-- 统计模块中的 ASCII 折线图必须封装到 `ascii_chart.py`，提供 `render_line_chart(data, width, height)` 函数。
-- 不允许使用 Flask/Web 界面，纯 CLI 交互。
-
-**代码规范：**
-- Python 遵守 PEP 8，type hints 全覆盖。
-- Google 风格 docstring（包含 Args、Returns、Raises）。
-- pytest 单元测试覆盖：SM-2 全5级评分计算、词根词缀拆解、错题本升降级逻辑、CSV 导入容错。
-
-**验证说明：**
-1. 启动方式：`pip install -r requirements.txt` 后 `python vocab.py --help`
-2. 功能验证命令：
-   - `python vocab.py add --word "unpredictable" --meaning "不可预测的" --example "The weather is unpredictable." --tags "六级"`
-   - `python vocab.py import cet4_words.csv` 批量导入
-   - `python vocab.py review --tag 六级` 进入复习，分别评分0/2/4各一次，验证下次复习间隔不同
-   - `python vocab.py analyze "unpredictable"` 输出词根拆解：un+predict+able
-   - `python vocab.py mistakes` 查看错题本
-   - `python vocab.py stats` 查看统计和 ASCII 趋势图
-3. 预期结果：SM-2 间隔计算有单元测试覆盖5级全部情况、词根词缀拆解合理、错题本升降级逻辑正确、CSV导入跳过错误行不中断、ASCII图表可正常渲染。
-
----
-
-### 19. 代码质量分析与技术债务仪表盘
-
-**需求描述：**
-从零构建一个纯前端代码质量分析Web应用，原生 HTML/CSS/JS。核心功能包括：1）Lint 报告解析：上传 ESLint（JSON格式）或 Pylint（JSON格式）的输出文件，解析为统一内部结构（文件路径、规则ID、严重等级、消息、行号列号）；2）问题分布图：按文件统计问题数量柱状图（Canvas 自绘），按严重等级（error/warning/info）统计饼图，按规则ID统计 TOP 10 排行表；3）圈复杂度可视化：上传 Lizard 或自定义的圈复杂度 JSON 报告，用热力图展示各文件/函数的复杂度分布，红色表示高复杂度需重构；4）代码异味检测（前端本地运行）：内置10条前端可检测的代码异味规则（过长函数>50行、过深嵌套>4层、过多参数>5个、重复代码块检测等），用户粘贴 JS/Python 代码后本地分析并标注异味位置；5）技术债务评分：综合问题数量、严重等级权重、圈复杂度三个维度，计算 0-100 的项目健康分，用仪表盘组件展示；6）趋势追踪：多次上传同一项目不同时期的报告，对比各维度变化趋势，用折线图展示健康分走势。
-
-**技术与实现约束：**
-- Lint 报告解析必须使用适配器模式：`LintReportAdapter` 抽象类定义 `parse(rawData) => UnifiedReport`，`EslintAdapter` 和 `PylintAdapter` 为两种具体适配器，将各自格式转为统一内部结构。
-- 代码异味检测必须使用策略模式：`SmellRule` 抽象类定义 `detect(code) => SmellResult[]`，10条规则各为具体策略类，`SmellDetector` 上下文类管理规则列表并逐一调用。
-- 技术债务评分算法封装到 `scorer.js`，权重公式公开透明：`score = 100 - (errors×5 + warnings×2 + infos×0.5 + avgComplexity×3)`，上限0下限100。
-- 所有图表必须使用 Canvas 自行绘制，不允许引入 Chart.js/ECharts 等图表库。折线图、柱状图、饼图、热力图、仪表盘分别封装为独立模块。
-- 数据存储使用 localStorage，每次上传的报告带时间戳，趋势图基于时间序列数据绘制。
-- 不允许引入任何第三方 UI 库或 CSS 框架。
-
-**代码规范：**
-- JavaScript strict camelCase，ES6 模块，JSDoc 注释。
-- CSS 使用 BEM 命名规范。
-- 适配器模式和策略模式的类必须有单元测试。
-
-**验证说明：**
-1. 启动方式：浏览器打开 `index.html`
-2. 功能验证：
-   - 上传一份 ESLint JSON 报告，问题分布柱状图、饼图、TOP 10 表格数据与原始报告一致
-   - 上传圈复杂度报告，热力图颜色深浅与复杂度数值对应
-   - 粘贴一段含深层嵌套和过长函数的 JS 代码，异味检测标注出具体行号和规则名
-   - 技术债务评分与手动计算一致，仪表盘指针指向正确区间
-   - 上传3次不同时间的报告，趋势折线图显示健康分变化
-3. 预期结果：适配器模式两种Lint格式无缝切换、策略模式10条异味规则独立可扩展、评分算法透明可复现、Canvas图表全部自绘无外部依赖。
-
----
-
-### 20. 正则表达式实验室
-
-**需求描述：**
-从零构建一个正则表达式测试、调试与学习平台，同时提供浏览器版和 Node.js 命令行版。核心功能包括：1）实时匹配：输入正则表达式（支持修饰符 g/i/m/s/u）和测试文本，即时高亮所有匹配片段，右侧面板展示每个匹配的起止位置、分组捕获内容和命名分组；2）正则语法树可视化：将正则表达式解析为语法树，用 Canvas 绘制树形结构（节点为字符类/量词/锚点/分组等类型，不同类型不同颜色），点击节点可查看该节点匹配的文本范围；3）语法解释器：逐段拆解正则语法，用自然语言注释每个元字符和构造的含义（如 `\d{2,4}` → "匹配2到4个数字字符"），输出分层缩进的解释文本；4）常用模板库：内置30+条常用正则模板（邮箱/手机号/URL/IPv4/IPv6/日期时间/身份证号/车牌号/Hex颜色/语义版本号等），按分类组织，点击填充到输入框；5）性能基准：对同一段测试文本分别运行多条正则，统计匹配耗时和回溯次数，用柱状图对比展示性能差异；6）替换预览：输入替换字符串（支持 `$1`/`$&`/`$`` 引用），实时预览替换后的文本，支持多次替换和条件替换。
-
-**技术与实现约束：**
-- 正则语法树解析必须使用解释器模式（Interpreter Pattern）：定义 `RegexNode` 抽象基类，`CharClassNode`、`QuantifierNode`、`AnchorNode`、`GroupNode` 等为具体节点类，`RegexParser` 递归下降解析正则字符串为语法树。
-- 语法解释器必须使用访问者模式（Visitor Pattern）：`ExplainVisitor` 遍历语法树，为每种节点类型生成对应的自然语言解释；`MatchRangeVisitor` 遍历语法树，结合匹配结果标注每个节点匹配的文本范围。两种 Visitor 独立互不影响，新增 Visitor 无需修改节点类。
-- 模板库必须封装到 `templates.js`，每条模板包含 `name`、`pattern`、`flags`、`category`、`description`、`testCases` 六个字段，按 category 分组。
-- 性能基准测试必须封装到 `benchmarker.js`，使用 `performance.now()` 计时，每个正则运行1000次取平均耗时，检测 catastrophic backtracking（单次匹配超过1秒判定为危险正则并警告）。
-- 前端与 CLI 共用代码放在 `core/` 目录。浏览器入口 `index.html`，CLI 入口 `cli.js`。
-- 前端必须使用 ES6 模块，Canvas 绘制逻辑封装到 `tree-renderer.js`。
-
-**代码规范：**
-- JavaScript strict camelCase，ES6 模块，JSDoc 注释。
-- 解释器模式和访问者模式的核心类必须有单元测试，至少覆盖：语法树解析5种典型正则、ExplainVisitor 输出正确解释文本、MatchRangeVisitor 标注正确范围。
-
-**验证说明：**
-1. 浏览器版：打开 `index.html`
-   - 输入 `(\d{3})-(\d{4})` 和测试文本 "电话：138-0013 和 159-1234"，两个匹配正确高亮，分组面板展示 area code 和号码
-   - 点击"语法树"标签，Canvas 绘制的树形结构中分组节点和量词节点层级正确，点击某个节点高亮对应匹配文本
-   - 点击"解释"标签，输出 "分组捕获: 匹配3个数字字符-匹配4个数字字符" 等自然语言说明
-   - 从模板库选择"手机号"，正则自动填充，测试文本匹配正确
-   - 性能基准对比 `.*` vs `.*?` 在长字符串上的耗时差异，柱状图直观展示
-   - 替换预览：输入替换 `$1****$2`，预览显示 "138-0013 → 138****0013"
-2. CLI版命令：
-   - `node cli.js match --pattern "\b\w+@\w+\.\w+\b" --text "联系 admin@test.com 或 test@qq.com"`
-   - `node cli.js explain --pattern "^(?=.*[A-Z])(?=.*\d).{8,}$"`
-   - `node cli.js benchmark --patterns "a.*b,a.*?b,a[^b]*b" --text "axxxxb...重复1000次"`
-   - `node cli.js replace --pattern "(\d{3})-(\d{4})" --replacement "$1-****" --text "138-0013 和 159-1234"`
-3. 预期结果：解释器模式语法树解析正确、访问者模式解释和范围标注独立可扩展、模板库30+条全部可用、性能基准检测回溯危险、替换预览引用语法正确。
-
----
-
-# 题目扩展分析（5-20号）
-
-> 以下为每道题的三张分析表，供出题和审核参考
-
----
-
-## 5. Zettelkasten 知识图谱笔记系统 — 扩展分析
-
+2. 操作测试：
+   - 建 3 条笔记互相引用（A引用B、B引用C、C引用A），看每条笔记底部的反向链接列表对不对
+   - 打开图谱页面，3 个节点是不是围成一个圈，用鼠标拖节点松手后其他节点会不会自动重新散开（力导向效果）
+   - 搜某条笔记正文里有的关键词，结果里那个词有没有高亮颜色标出来
+   - 选笔记 A 导出，生成的 Markdown 文件里 `[[B]]` 和 `[[C]]` 的引用格式还在不在，三条笔记的内容是不是都完整导出来了
+3. 确认：引用关系没搞错、图谱能拖动缩放、搜索够快够准、导出的 Markdown 格式和内容都对。
+
+**扩展分析：**
 **表1：可新增模块及可能bug**
 
 | 新模块 | 功能简述 | 可能引起用户不满意的原因 |
@@ -621,8 +162,38 @@ React + TypeScript + Vite + Tailwind CSS（纯前端，加密存储于 localStor
 
 ---
 
-## 6. 实时协作画板 — 扩展分析
+### 6. 实时协作画板
 
+**需求描述：**
+做一个多人能一起画画的在线白板网站。后端用 Node.js + Express + Socket.io 做实时通信，SQLite 存房间信息和画画记录，前端用原生 HTML + Canvas 实现。要能做这些事：1）画笔工具：能调粗细和颜色，还有橡皮擦、画直线、矩形、圆形、输入文字；2）房间机制：创建一个房间自动生成邀请码，别人输邀请码就能进来，房间里每个人画的东西所有人都实时能看到；3）图层功能：每个房间最多 5 个图层，可以切换当前在哪个图层画，能隐藏/显示某个图层，也能删图层；4）撤销和重做：能一步步撤销之前的操作，也能重做回来，每次操作要记是谁干的；5）导出：把整个画布内容导成 PNG 图片下载；6）在线用户列表：侧边栏显示当前房间里有哪些人，还有他们光标在画布的什么位置。
+
+**技术栈：**
+Node.js + Express + Socket.io + SQLite + 原生前端（HTML/CSS/JS + Canvas）
+
+**技术与实现约束：**
+- 撤销/重做必须使用命令模式（Command Pattern）实现，每个绘图操作封装为可执行/可撤销的命令对象，不允许用 Canvas 快照数组实现。
+- 图层管理逻辑必须封装到独立文件 `layer-manager.js`，Canvas 绑定和渲染逻辑封装到 `canvas-renderer.js`，主入口只做初始化和事件绑定。
+- Socket.io 事件处理必须按职责拆分：`socket/drawing.js`（绘图事件）、`socket/room.js`（房间事件）、`socket/history.js`（撤销重做事件），不允许全部写在一个文件里。
+- 房间数据在服务端用 SQLite 持久化（房间信息+操作日志），服务器重启后重新加入房间可恢复历史绘制内容。
+- 前端必须使用 ES6 模块，UI 状态管理使用发布-订阅模式（Pub/Sub），不允许在 Canvas 事件回调里直接操作 DOM。
+
+**代码规范：**
+- JavaScript 遵守 ESLint 推荐规则，strict camelCase。
+- 所有函数必须有 JSDoc 注释。
+- 后端 Socket.io 事件名必须使用 `room:join`、`drawing:stroke`、`history:undo` 等命名空间格式，不允许裸事件名。
+
+**验证说明：**
+检查点：
+1. 启动方式：`npm install` 后 `npm start`
+2. 操作测试：
+   - 打开两个浏览器标签页，一个创建房间拿邀请码，另一个用邀请码加入，在第一个页面画线，看第二个页面是不是立刻（几乎感觉不到延迟）就显示出来了
+   - 随便画 3 笔，点撤销 2 次再重做 1 次，看画布上剩下的内容对不对
+   - 切到第 2 图层画点东西，把第 1 图层隐藏，看第 1 层的内容是不是看不见了，再打开显示内容还在
+   - 点导出 PNG，下载下来的图片能不能正常打开看，内容是不是和画布上一致
+   - 把服务器关了重启，重新加入同一个房间，之前画的东西还在不在
+3. 确认：两边画画同步够快（几乎实时）、撤销重做步骤准确、图层切换不乱、服务器重启后数据能恢复。
+
+**扩展分析：**
 **表1：可新增模块及可能bug**
 
 | 新模块 | 功能简述 | 可能引起用户不满意的原因 |
@@ -659,8 +230,39 @@ React + TypeScript + Vite + Tailwind CSS（纯前端，加密存储于 localStor
 
 ---
 
-## 7. 习惯追踪与数据可视化平台 — 扩展分析
+### 7. 习惯追踪与数据可视化平台
 
+**需求描述：**
+做一个帮你打卡追踪习惯的网站，坚持每天打卡看自己完成得怎么样。后端用 Python Flask + SQLite，前端原生 HTML。功能包括：1）创建习惯：给习惯起名字、设目标频率（比如每周3次）、选图标和颜色标记，还能分类（健康/学习/工作/生活）；2）每日打卡：点一下就算完成当天打卡，显示连续坚持了多少天和总共完成多少次，哪天漏打了连续天数就清零重新算；3）日历热力图：像 GitHub 贡献图那样，全年每一天一个小格子，颜色越深表示那天完成的习惯越多；4）统计面板：按周/月/年看完成率、连续天数趋势折线图、各分类完成占比饼图、做得最好和最差的习惯排名；5）导出数据：能导出成 CSV 或 JSON 文件；6）提醒功能：每个习惯可以设提醒时间，到点弹浏览器通知提醒你打卡。
+
+**技术栈：**
+Python Flask + SQLite + 原生前端（HTML/CSS/JS）
+
+**技术与实现约束：**
+- 后端必须采用三层架构：`routes/` → `services/` → `models/`，SQL 查询只在 models 层出现。
+- 日历热力图算法必须封装到独立文件 `static/js/heatmap.js`，该模块对外只暴露 `render(containerId, data, options)` 一个接口，不允许在 HTML 中直接操作 Canvas。
+- 统计图表必须使用 Canvas 自行绘制，不允许引入 Chart.js/ECharts 等图表库。折线图、饼图分别封装为 `line-chart.js` 和 `pie-chart.js` 独立模块。
+- 连续天数计算必须封装为 service 层的独立函数 `calc_streak(habit_id)`，该函数必须有完整的单元测试（使用 pytest）。
+- Flask 使用 Blueprint 拆分：`habits`、`stats`、`export` 三个 Blueprint。
+- 前端使用 ES6 模块，所有 API 调用封装到 `api.js`。
+
+**代码规范：**
+- Python 遵守 PEP 8，所有函数/类必须有 Google 风格 docstring（包含 Args、Returns、Raises）。
+- JavaScript strict camelCase，JSDoc 注释。
+- 单元测试放在 `tests/` 目录，使用 pytest，至少覆盖连续天数计算、完成率计算、导出格式三个核心函数。
+
+**验证说明：**
+检查点：
+1. 启动方式：`pip install -r requirements.txt` 后 `python app.py`
+2. 操作测试：
+   - 建 3 个不同分类的习惯，连续 5 天都打卡，看日历热力图对应那几天的格子颜色是不是变深了
+   - 第 6 天故意不打卡，第 7 天再打，看连续天数是不是先归零然后从 1 重新开始算
+   - 看月度统计页面，自己手动算一下完成率对不对，折线图和饼图的数据跟实际打卡记录吻不吻合
+   - 导出 CSV 文件，用 Excel 打开看数据是不是完整，有没有乱码
+   - 给某个习惯设一个马上就要到的提醒时间，等时间到了看浏览器有没有弹通知
+3. 确认：代码分层清楚、热力图渲染正常、连续天数计算有测试保障、所有图表都是纯 Canvas 画的没引用外部图表库。
+
+**扩展分析：**
 **表1：可新增模块及可能bug**
 
 | 新模块 | 功能简述 | 可能引起用户不满意的原因 |
@@ -694,8 +296,40 @@ React + TypeScript + Vite + Tailwind CSS（纯前端，加密存储于 localStor
 
 ---
 
-## 8. 端到端加密通信终端 — 扩展分析
+### 8. 端到端加密通信终端
 
+**需求描述：**
+做一个命令行工具，用来发加密消息，只有收发双方能解开，别人截获了也看不懂。用 Node.js 开发，本地 SQLite 存密钥和消息记录。要能做这些事：1）密钥管理：生成 RSA-2048 的公钥私钥对，能导入导出 PEM 格式的密钥文件，能列出本地所有密钥对和它们的指纹；2）加密消息：指定对方的公钥文件，输入一段明文，程序先用 AES-256-CBC 加密消息内容，再用对方的 RSA 公钥加密 AES 密钥，最后输出一个 Base64 编码的 JSON 加密包文件；3）解密消息：输入加密包文件路径和自己的私钥路径，先用 RSA 私钥解出 AES 密钥，再用 AES 密钥解出明文内容打印出来；4）数字签名：用私钥给消息做 SHA-256 签名，别人收到消息后可以用你的公钥验证签名是不是真的；5）安全删除：提供一个 shred 命令，把指定文件用随机数据覆写 3 遍再删除，防止用恢复软件找回；6）通信录：本地 SQLite 存联系人（昵称+公钥路径），加密消息时可以直接输联系人昵称不用每次找公钥文件路径。
+
+**技术栈：**
+Node.js CLI + SQLite（纯命令行工具，无Web界面）
+
+**技术与实现约束：**
+- 加密/解密/签名逻辑必须封装到独立文件 `crypto-engine.js` 作为服务层，主入口 `index.js` 只负责 CLI 参数解析和调用服务层，不允许把加密算法写到 CLI 入口文件中。
+- 加密包格式必须采用固定的 JSON 结构：`{ version, alg, iv, encrypted_key, ciphertext, signature? }`，不允许自定义二进制格式。
+- 密钥派生必须使用 Node.js 内置 `crypto.generateKeyPairSync` 和 `crypto.publicEncrypt/privateDecrypt`，不允许引入第三方加密库如 `tweetnacl`。
+- 安全删除算法必须封装为独立函数 `secureDelete(filePath, passes)`，passes 参数默认为3。
+- 通信录数据访问必须封装为 Repository 模式的 `ContactRepository` 类。
+- CLI 参数解析使用 `commander`，帮助信息必须完整覆盖所有子命令和选项。
+
+**代码规范：**
+- JavaScript 遵守 ESLint 推荐规则，strict camelCase。
+- 所有对外暴露的函数必须有 JSDoc 注释（包含 @param、@returns、@throws）。
+- 加密引擎的所有核心函数必须有对应的单元测试（使用 Jest 或 Node 内置 test runner）。
+
+**验证说明：**
+检查点：
+1. 启动方式：`npm install` 后 `node index.js --help` 看所有命令和选项的帮助信息是不是齐全
+2. 命令测试：
+   - `node index.js keygen --name alice` 生成 Alice 的密钥对，再 `node index.js keygen --name bob` 生成 Bob 的
+   - `node index.js encrypt --to bob --message "Hello Bob"`，应该输出一个加密包文件
+   - `node index.js decrypt --input encrypted_msg.json --key bob`，解密出来应该是 "Hello Bob" 原文
+   - `node index.js sign --key alice --message "Important document"` 生成签名
+   - `node index.js verify --key alice --message "Important document" --sig signature.json`，验证应该通过；故意把消息改一个字再验证，应该判定签名无效
+   - `node index.js shred sensitive.txt`，执行后文件应该被删掉了，尝试用恢复软件也找不回来
+3. 确认：RSA+AES 混合加解密能正常跑通、签名验证通过和失败两种情况都准确、shred 删除后文件无法恢复、用联系人昵称代替公钥路径的流程顺畅。
+
+**扩展分析：**
 **表1：可新增模块及可能bug**
 
 | 新模块 | 功能简述 | 可能引起用户不满意的原因 |
@@ -729,8 +363,35 @@ React + TypeScript + Vite + Tailwind CSS（纯前端，加密存储于 localStor
 
 ---
 
-## 9. 中英文文本分析与词频统计引擎 — 扩展分析
+### 9. 中英文文本分析与词频统计引擎
 
+**需求描述：**
+做一个命令行的文本分析工具，用Python写，用SQLite存分析历史记录。要能干这些事：1）中文分词然后统计词频，输出出现次数最多的前N个词，可以自己加停用词表；2）英文也分词统计词频，自动转小写，还要能把running变成run这种词干提取；3）输入好几篇文章，算每篇文章里每个词的TF-IDF值，输出每篇前10个关键词；4）拿两篇文章比一比有多像，用余弦相似度算个百分比出来；5）根据词频数据生成一张PNG词云图，可以自己调宽高和背景色；6）把上面所有统计结果做成一份HTML报告（自带样式），里面要有词频表格、TF-IDF表格、相似度矩阵、词云图片；7）可以直接读一整个文件夹里的所有.txt文件批量分析，结果汇总到一份报告里。
+
+**技术与实现约束：**
+- 文本分析逻辑必须按 Pipeline 模式组织：`Reader → Tokenizer → Analyzer → Reporter`，每个阶段独立封装，主入口按顺序调用 Pipeline 各阶段。
+- 中文分词器 `ChineseTokenizer` 和英文分词器 `EnglishTokenizer` 必须继承自同一个抽象基类 `BaseTokenizer`（使用 `abc.ABC`），对外暴露统一的 `tokenize(text) -> list[str]` 接口。
+- TF-IDF 计算逻辑必须封装到独立文件 `tfidf.py`，不允许和分析逻辑混在一起。
+- HTML 报告生成必须使用 Jinja2 模板，不允许用 f-string 拼接 HTML。
+- SQLite 只存分析历史元数据（文件名、时间、参数），不存分析结果全文。
+- 必须支持 `--verbose` 参数输出处理进度。
+
+**代码规范：**
+- Python 遵守 PEP 8，所有函数/类必须有 Google 风格 docstring（包含 Args、Returns、Raises）。
+- 使用 type hints 标注所有公开函数的参数和返回值。
+- 单元测试使用 pytest，至少覆盖：中文分词、英文 Stemming、TF-IDF 计算、余弦相似度四个核心函数。
+
+**验证说明：**
+1. 启动方式：`pip install -r requirements.txt` 后 `python analyze.py --help`
+2. 功能验证命令：
+   - `python analyze.py freq --input article_cn.txt --lang zh --top 20 --stopwords stopwords.txt`
+   - `python analyze.py tfidf --input ./articles/ --top 10`
+   - `python analyze.py similarity --input article1.txt article2.txt`
+   - `python analyze.py wordcloud --input article_cn.txt --output cloud.png --width 800 --height 400`
+   - `python analyze.py report --input ./articles/ --output report.html`
+3. 检查点：中文分词分对了、TF-IDF关键词结果合理、相似度数字在0-1之间、词云图片能正常生成、HTML报告浏览器能打开且样式没问题。
+
+**扩展分析：**
 **表1：可新增模块及可能bug**
 
 | 新模块 | 功能简述 | 可能引起用户不满意的原因 |
@@ -767,8 +428,35 @@ React + TypeScript + Vite + Tailwind CSS（纯前端，加密存储于 localStor
 
 ---
 
-## 10. 智能文件组织与规则引擎 — 扩展分析
+### 10. 智能文件组织与规则引擎
 
+**需求描述：**
+做一个命令行工具，用Node.js写，根据你定的规则自动整理文件，用SQLite存规则配置和操作日志。要能干这些事：1）自定义规则：每条规则可以写匹配条件（文件后缀/文件名包含/文件大小范围/修改日期范围/正则匹配）和要执行的动作（移到某个文件夹/重命名/压缩成zip/复制备份），条件之间支持AND/OR/NOT自由组合；2）规则引擎：扫描指定文件夹，每个文件挨个过规则链，命中的就执行对应动作；3）冲突处理：执行前先检查目标路径有没有同名文件，有的话自动在后面加(1)(2)这种序号，不直接覆盖；4）干跑模式：加个`--dry-run`参数，只打印出来它打算干嘛，不真的改文件；5）操作日志：每次跑的所有文件操作都记到SQLite里（源路径、目标路径、操作类型、时间、成功与否）；6）撤销功能：`--undo`读取最近一次跑的操作日志，倒着执行反向操作（移走的移回来、改名的改回去、复制的删掉副本），一键撤回；7）内置模板：自带5套常用规则模板（"按后缀名分到子文件夹"、"按月份归档照片"、"清理临时文件"、"音乐按艺术家整理"、"下载目录自动整理"），一键加载然后自己微调就行。
+
+**技术与实现约束：**
+- 规则引擎必须使用责任链模式（Chain of Responsibility）实现：每条规则是一个处理器，文件依次经过所有处理器，命中的执行动作并标记 `handled`。
+- 规则匹配条件的 AND/OR/NOT 组合必须用组合模式（Composite Pattern）实现，`Condition` 为抽象基类，`AndCondition`、`OrCondition`、`NotCondition` 为组合类，`ExtensionCondition`、`NameCondition` 等为叶子类。
+- 文件系统操作必须封装到 `FileOperator` 类中（Repository 模式），不允许在规则处理器中直接调用 `fs.rename`/`fs.copyFile`，必须通过 `FileOperator` 间接调用。
+- 操作日志的撤销逻辑封装到 `UndoManager` 类，读取日志并生成反向操作序列。
+- CLI 使用 `commander` 库解析参数，规则配置以 JSON 文件格式存储。
+- 所有规则模板定义在 `templates.js` 中，每个模板是一个返回规则数组的工厂函数。
+
+**代码规范：**
+- JavaScript 遵守 ESLint 推荐规则，strict camelCase。
+- 所有类和公开函数必须有 JSDoc 注释。
+- FileOperator 的每个方法必须有对应的单元测试（使用 Jest 或 Node 内置 test runner，用临时目录测试）。
+
+**验证说明：**
+1. 启动方式：`npm install` 后 `node organize.js --help`
+2. 功能验证命令：
+   - `node organize.js template --list` 列出所有预设模板
+   - `node organize.js template --apply "按扩展名分类" --target ./messy_dir --dry-run`
+   - `node organize.js run --rules rules.json --target ./messy_dir`
+   - `node organize.js undo` 撤销上一次操作
+   - `node organize.js log` 查看操作日志
+3. 检查点：规则匹配没搞错、AND/OR/NOT条件组合逻辑对、干跑模式没动文件、撤销能完整恢复原样、操作日志记录全了能追溯。
+
+**扩展分析：**
 **表1：可新增模块及可能bug**
 
 | 新模块 | 功能简述 | 可能引起用户不满意的原因 |
@@ -807,8 +495,34 @@ React + TypeScript + Vite + Tailwind CSS（纯前端，加密存储于 localStor
 
 ---
 
-## 11. 终端仪表盘渲染框架 — 扩展分析
+### 11. 终端仪表盘渲染框架
 
+**需求描述：**
+做一个Node.js终端仪表盘渲染框架（库），让其他命令行程序可以调用，附带完整的示例。要能干这些事：1）组件体系：内置6种组件——进度条（BarChart）、折线图（LineChart）、柱状图（Sparkline）、表格（Table）、仪表盘（Gauge）、文字标签（Label）；2）布局系统：支持网格布局，你指定多少行多少列、每个组件占多大位置，框架自动算好每个组件渲染的坐标，多个组件同时刷新互不干扰；3）实时数据绑定：组件通过`setData(data)`接收更新数据，用观察者模式通知重绘，支持外部定时推送数据模拟实时监控效果；4）主题系统：内置3套主题（默认暗色、浅色、Solarized），每个主题有自己的颜色映射表，通过`setTheme(name)`一键切换；5）终端兼容：自动检测终端窗口大小变化，窗口缩放后布局自动重新调整；6）示例脚本：提供`demo.js`演示所有组件类型、多组件布局、实时数据更新、主题切换效果。
+
+**技术与实现约束：**
+- 组件体系必须使用模板方法模式（Template Method Pattern）：`BaseWidget` 抽象类定义 `render()` 骨架（计算尺寸→清空区域→绘制内容→刷新输出），子类只实现 `drawContent()` 钩子方法。
+- 组件创建必须使用工厂模式（Factory Pattern）：`WidgetFactory.create(type, options)` 根据类型字符串创建对应组件实例，调用方不直接 `new` 具体组件类。
+- 观察者模式实现数据绑定：`DataSubject` 持有观察者列表，数据变更时通知所有订阅组件重绘；组件实现 `DataObserver` 接口的 `onDataUpdate(data)` 方法。
+- 布局算法封装到 `LayoutManager` 类，接收网格定义和终端尺寸，输出每个组件的 `{x, y, width, height}` 坐标。
+- 不允许使用 `blessed`、`ink`、`terminal-kit` 等终端 UI 框架，只能用 `process.stdout.write` + ANSI 转义码自绘。
+- 库的公共 API 必须清晰简洁：`Dashboard.create(config)` → `dashboard.addWidget(type, options)` → `dashboard.update(id, data)` → `dashboard.render()`。
+
+**代码规范：**
+- JavaScript 遵守 ESLint 推荐规则，strict camelCase。
+- 所有类和公开方法必须有 JSDoc 注释。
+- 每个组件类必须有独立的单元测试文件，验证渲染输出字符串包含预期 ANSI 序列。
+
+**验证说明：**
+1. 启动方式：`npm install` 后 `node demo.js`
+2. 功能验证：
+   - 运行 demo.js，终端同时显示6种组件，数据每秒自动更新
+   - 缩放终端窗口，布局自适应重排，组件不重叠不溢出
+   - 主题切换后所有组件颜色同步更新
+   - 手动调用 `WidgetFactory.create('gauge', {label:'CPU', max:100})` 能正确创建仪表盘组件
+3. 检查点：模板方法+工厂+观察者三种设计模式都用对了、6种组件渲染效果清晰看得清、缩放窗口布局能自适应、切主题能立即生效。
+
+**扩展分析：**
 **表1：可新增模块及可能bug**
 
 | 新模块 | 功能简述 | 可能引起用户不满意的原因 |
@@ -852,8 +566,34 @@ React + TypeScript + Vite + Tailwind CSS（纯前端，加密存储于 localStor
 
 ---
 
-## 12. 色彩设计与无障碍检测平台 — 扩展分析
+### 12. 色彩设计与无障碍检测平台
 
+**需求描述：**
+做一个纯前端的色彩设计网页应用，原生HTML/CSS/JS，不用后端。要能干这些事：1）配色方案生成：输入一个基础颜色（HEX格式），自动生成6种色彩和谐方案（互补色、分裂互补色、类似色、三角色、四角色、单色渐变），每种方案展示5-7个色块，点一下色块就复制HEX值到剪贴板；2）WCAG对比度检测：输入前景色和背景色，算对比度比值，判断是否满足WCAG 2.1的AA/AAA级别（正常文字和大文字分开评判），用色条可视化显示对比度在哪个区间；3）色盲模拟：对当前配色方案做3种色盲类型模拟（红色盲Protanopia、绿色盲Deuteranopia、蓝色盲Tritanopia），并排对比展示正常视角和色盲视角下的差异；4）CSS变量导出：选中配色方案后一键导出成CSS自定义属性格式（`:root { --primary: #xxx; ... }`），可以复制也可以下载成.css文件；5）渐变编辑器：可视化创建双色/三色CSS渐变，实时预览效果，拖拽色标调整位置，输出CSS的`linear-gradient`代码；6）颜色历史：用localStorage存最近用过的30个颜色，可以快速拿回来再用。
+
+**技术与实现约束：**
+- 色彩空间转换算法（RGB ↔ HSL ↔ HSV）必须封装到独立模块 `color-math.js`，UI 代码不允许内联计算逻辑。
+- 6种色彩和谐方案必须使用策略模式实现：`HarmonyStrategy` 抽象类定义 `generate(baseColor) => Color[]` 接口，`ComplementaryStrategy`、`TriadicStrategy` 等为具体策略类，由 `HarmonyGenerator` 上下文类调用。
+- WCAG 对比度计算公式必须封装到 `contrast-checker.js`，该模块同时提供 `getRatio(fg, bg) => number` 和 `getLevel(ratio, isLargeText) => {aa: bool, aaa: bool}` 两个函数。
+- 色盲模拟矩阵必须封装到 `color-blind.js`，使用标准的色彩空间线性变换矩阵，不允许硬编码转换结果。
+- 前端必须使用 ES6 模块，所有 UI 更新通过发布-订阅模式驱动，不允许在 DOM 事件回调中直接操作其他 DOM 元素。
+- 不允许引入任何第三方 UI 库或 CSS 框架（禁用 Tailwind/Bootstrap），所有样式手写。
+
+**代码规范：**
+- JavaScript strict camelCase，JSDoc 注释覆盖所有公开函数。
+- CSS 使用 BEM 命名规范（`.block__element--modifier`）。
+
+**验证说明：**
+1. 启动方式：浏览器打开 `index.html`
+2. 功能验证：
+   - 输入 #1a73e8，6种方案色块数量和色值符合色彩学规则（互补色应为对角位置）
+   - 输入前景 #ffffff 背景 #1a73e8，对比度比值与在线 WCAG 检测工具结果一致，AA/AAA 判定准确
+   - 切换到红色盲模拟，配色方案色块变为红绿色盲视角下的颜色
+   - 渐变编辑器拖拽色标后实时预览更新，导出的 CSS 代码可直接粘贴使用
+   - 导出 CSS 变量文件，内容格式正确
+3. 检查点：颜色计算数学对、6种配色方案独立可扩展、WCAG判定和标准一致、色盲模拟视觉正确、所有操作零延迟不卡顿。
+
+**扩展分析：**
 **表1：可新增模块及可能bug**
 
 | 新模块 | 功能简述 | 可能引起用户不满意的原因 |
@@ -894,8 +634,40 @@ React + TypeScript + Vite + Tailwind CSS（纯前端，加密存储于 localStor
 
 ---
 
-## 13. 安全审计与合规扫描框架 — 扩展分析
+### 13. 安全审计与合规扫描框架
 
+**需求描述：**
+我要一个命令行安全审计工具，Python写的，用SQLite存每次扫过的历史记录。具体要做这些事：
+1）密码强度检测：从好几个角度打分——够不够长、字母数字符号种类多不多、是不是那50多个常见弱密码里的、有没有连续重复字符、有没有键盘上连排的按键序列（像qwert、12345这种），最后给个等级：弱/中/强/极强，还要一条条告诉你具体怎么改能更强。
+2）文件权限扫一遍：把指定目录下所有文件挨个看，找权限开太大的——比如Unix系统的777、666，或者Windows上Everyone都能完全控制的文件，把这些有风险的文件列个清单出来。
+3）敏感信息扫雷：用正则表达式翻文本文件里可能泄露的密钥和令牌，比如AWS Key、GitHub Token、私钥开头那串-----BEGIN RSA、硬编码写死在代码里的IP和密码，扫到了就告诉你哪个文件第几行。
+4）依赖有没有漏洞：读package.json（npm的）和requirements.txt（pip的）里面的依赖，跟内置的CVE小库（JSON文件，先预置100条常见高危漏洞）对对，看有没有已知漏洞的依赖包。
+5）出一份HTML审计报告：把所有扫描结果汇总成一个独立的HTML文件，样式和脚本都内嵌进去不用额外文件，按风险等级（高/中/低）用不同颜色区分，详情点一下能折叠展开。
+6）每种扫描做成独立插件：用户可以用--scanners参数挑自己想跑哪些扫描器，不挑的话就全部都跑，以后要加新扫描器不用改主程序。
+
+**技术与实现约束：**
+- 扫描器插件必须使用插件架构：定义 `BaseScanner` 抽象基类（`abc.ABC`），包含 `name` 属性和 `scan(target) -> ScanResult` 抽象方法，`PasswordScanner`、`PermissionScanner`、`SensitiveInfoScanner`、`DependencyScanner` 为具体子类。
+- 扫描器注册必须使用自注册模式：每个扫描器类在模块末尾调用 `ScannerRegistry.register(ScannerClass)`，主程序通过 `ScannerRegistry.get_all()` 获取所有已注册扫描器，新增扫描器无需修改主程序代码。
+- HTML 报告生成必须使用 Jinja2 模板引擎，不允许用 f-string 拼接 HTML。
+- 敏感信息正则必须封装到 `patterns.py` 配置文件中，每条正则有 `name`、`pattern`、`severity`、`description` 四个字段，便于后续扩展新规则。
+- SQLite 存储每次扫描的元数据（时间、目标、各扫描器结果摘要），不存扫描全文。
+- 必须支持 `--verbose` 参数实时输出扫描进度。
+
+**代码规范：**
+- Python 遵守 PEP 8，type hints 标注所有公开函数。
+- 所有类和函数必须有 Google 风格 docstring（包含 Args、Returns、Raises）。
+- 单元测试使用 pytest，至少覆盖：密码评分逻辑、敏感信息正则匹配、依赖版本比较三个核心函数。
+
+**验证说明：**
+1. 先装依赖再跑帮助：`pip install -r requirements.txt` 之后执行 `python audit.py --help`，能正常出命令列表。
+2. 挨个功能试一遍：
+   - `python audit.py password --check "P@ssw0rd"`，要能输出评分等级和具体的改进建议。
+   - `python audit.py scan --target ./project --scanners sensitive,dependency`，要只跑敏感信息和依赖检查这两个，其他扫描器不执行。
+   - `python audit.py scan --target ./project --output report.html`，要生成一份独立的HTML报告，用浏览器打开能看。
+   - `python audit.py history`，要能列出之前所有扫过的历史记录。
+3. 检查点：想开哪种扫描就开哪种、加新扫描器不用碰主程序代码、HTML报告高危中危低危颜色分的清清楚楚、敏感信息正则匹配不漏不瞎报。
+
+**扩展分析：**
 **表1：可新增模块及可能bug**
 
 | 新模块 | 功能简述 | 可能引起用户不满意的原因 |
@@ -932,8 +704,41 @@ React + TypeScript + Vite + Tailwind CSS（纯前端，加密存储于 localStor
 
 ---
 
-## 14. 多格式数据转换与校验管道 — 扩展分析
+### 14. 多格式数据转换与校验管道
 
+**需求描述：**
+我要一个数据格式转换+校验的工具，同时要有浏览器页面版和Node.js命令行版，两个版本共用一套核心逻辑，不能写两遍。具体功能：
+1）四种格式随便转：JSON、YAML、TOML、CSV，想从哪种转成哪种都行，双向的。
+2）JSON Schema校验：给我一段JSON数据和一个Schema规则文件，告诉我过没过，没过的话具体是哪个路径的字段、什么原因错了。
+3）两份数据对比差异：给两份同格式的数据，告诉我哪些字段是新加的、删了的、改了值的，把前后值都列出来，前端并排显示还要高亮标记。
+4）链式转换管道：支持一连串转换，比如先CSV转JSON再转YAML，用一个-p参数指定转换顺序就行。
+5）自定义字段映射规则：用户可以写简单的规则——比如把字段A改名叫B、把嵌套的结构展开摊平、或者反过来折成嵌套、把字符串改成数字类型，转换的时候自动按规则来。
+6）批量处理：命令行版能从一个目录读一堆同格式的文件，批量转成另一种格式，输出到指定的目录里。
+
+**技术与实现约束：**
+- 转换管道必须使用管道模式（Pipeline Pattern）实现：`Pipeline` 类接收一组 `TransformStep`，数据依次流经每个步骤，每个步骤输入上一步输出。`JsonToYamlStep`、`YamlToTomlStep` 等为具体步骤类。
+- 每种格式的解析器和序列化器必须使用适配器模式（Adapter Pattern）统一接口：`FormatAdapter` 抽象类定义 `parse(content) => data` 和 `serialize(data) => content`，具体适配器实现各自格式的解析/序列化逻辑。
+- JSON Schema 校验逻辑封装到 `schema-validator.js` 独立模块，不允许内联在转换逻辑中。
+- 差异对比算法封装到 `differ.js`，输出结构为 `{added: [], removed: [], modified: []}`，前端根据此结构渲染高亮。
+- 前端与 CLI 共用代码必须放在 `core/` 目录，前端入口 `index.html`（通过 `<script type="module">` 引用）、CLI 入口 `cli.js`（通过 `require` 或 `import` 引用），入口文件不允许包含核心逻辑。
+- 不允许引入 ajv 等第三方 JSON Schema 校验库，必须自行实现基础校验（type/required/properties/minLength/maxLength/pattern/enum 七个关键字）。
+
+**代码规范：**
+- JavaScript strict camelCase，ES6 模块。
+- 所有公开函数和类必须有 JSDoc 注释。
+- 核心模块（管道、适配器、校验器、差异对比）各有独立的单元测试文件。
+
+**验证说明：**
+1. 浏览器版操作：打开 `index.html`，先粘一段JSON转成YAML，再从YAML转回JSON，前后内容要一模一样；故意输一段不合规的JSON配上Schema，校验结果要准确指出哪个字段错了、为啥错；准备两份不一样的JSON做对比，新增/删除/修改的字段要分别用不同颜色高亮。
+2. 命令行版挨个试命令：
+   - `node cli.js convert input.json --from json --to yaml`，正常转格式。
+   - `node cli.js validate data.json --schema schema.json`，出校验结果。
+   - `node cli.js diff a.json b.json`，出结构化差异。
+   - `node cli.js pipeline input.csv -p "csv2json,json2yaml"`，链式转换正确。
+   - `node cli.js batch ./data/ --from json --to yaml --outdir ./output/`，批量转换所有文件。
+3. 检查点：管道链式转换一步不丢值、适配器切格式无缝不丢信息、自实现的Schema校验7个关键字全覆盖、差异对比新增删除修改分的清清楚楚。
+
+**扩展分析：**
 **表1：可新增模块及可能bug**
 
 | 新模块 | 功能简述 | 可能引起用户不满意的原因 |
@@ -973,8 +778,42 @@ React + TypeScript + Vite + Tailwind CSS（纯前端，加密存储于 localStor
 
 ---
 
-## 15. 终端个人财务分析引擎 — 扩展分析
+### 15. 终端个人财务分析引擎
 
+**需求描述：**
+我要一个纯命令行的个人理财分析工具，Python写的，数据存SQLite。具体功能：
+1）交易记录管理：支持手动一条一条加，也支持从CSV或OFX文件批量导入（每条记录有日期、金额、收入/支出类型、分类、备注），导入的时候自动去重——按日期+金额+备注算个指纹，重复的就不插了。
+2）自动分类规则引擎：用户可以自己定规则，比如"备注里包含'星巴克'就归到'咖啡'这个分类"，规则按优先级顺序一条条匹配，命中第一条就停，后面的不再比。
+3）月度和年度财务报表：收入支出各多少汇总、每个分类花了多少占比多少、净储蓄率多少、跟上月比环比增长还是下降了。
+4）预算管理：给每个分类设定每月预算额度，实时对比实际花了多少，超预算了就标红警告你。
+5）趋势预测：拿最近6个月的数据做简单线性回归，预测下个月大概会花多少钱，输出预测值和一个置信区间。
+6）可视化报表：终端里用ASCII字符画柱状图（每月收支对比）和饼图（分类占比），另外还能导出HTML报告——用matplotlib生成图片内嵌进去。
+
+**技术与实现约束：**
+- 分类规则引擎必须使用责任链模式实现：每条规则是一个处理器，交易记录依次经过规则链，第一条命中的规则决定分类，后续规则不再执行。
+- CSV 导入逻辑必须封装到 `importers/` 目录，每种格式（CSV、OFX）一个导入器类，继承自 `BaseImporter` 抽象基类，统一暴露 `import(file_path) -> list[Transaction]` 接口。
+- 趋势预测算法封装到 `predictor.py`，使用最小二乘法线性回归，不允许引入 scikit-learn，只能用 numpy 或纯 Python 实现。
+- 报表生成使用策略模式：`ReportStrategy` 定义 `generate(data, output_format) => str` 接口，`TerminalReportStrategy` 和 `HtmlReportStrategy` 为两种具体策略。
+- Flask Blueprint 拆分：`transactions`、`budgets`、`reports`、`predict` 四个 Blueprint。
+- 前端无，纯 CLI。
+
+**代码规范：**
+- Python 遵守 PEP 8，type hints 全覆盖。
+- Google 风格 docstring（包含 Args、Returns、Raises）。
+- pytest 单元测试覆盖：分类规则引擎匹配逻辑、CSV 导入去重、线性回归预测值、预算超限判定。
+
+**验证说明：**
+1. 先装依赖再跑帮助：`pip install -r requirements.txt` 之后 `python finance.py --help` 出正常命令列表。
+2. 挨个试：
+   - `python finance.py import transactions.csv --format csv`，能批量导入，重复的自动跳过。
+   - `python finance.py add --date 2026-06-20 --amount -35.5 --note "星巴克拿铁"`，应该自动分类到"咖啡"。
+   - `python finance.py budget set --category 餐饮 --monthly 2000`，设预算成功。
+   - `python finance.py report --month 2026-06 --format terminal`，终端输出月报，ASCII图表正常。
+   - `python finance.py predict --category 餐饮`，出预测值和置信区间。
+   - `python finance.py report --year 2026 --format html --output report.html`，生成HTML年报。
+3. 检查点：规则匹配优先级正确、CSV导入不重复插、超预算标红警告、预测值差不多靠谱、终端ASCII图表和HTML报告都能正常出来。
+
+**扩展分析：**
 **表1：可新增模块及可能bug**
 
 | 新模块 | 功能简述 | 可能引起用户不满意的原因 |
@@ -1015,8 +854,41 @@ React + TypeScript + Vite + Tailwind CSS（纯前端，加密存储于 localStor
 
 ---
 
-## 16. 交互式算法可视化平台 — 扩展分析
+### 16. 交互式算法可视化平台
 
+**需求描述：**
+我要一个纯前端的算法可视化学习网站，就用原生HTML/CSS/JS加Canvas，不要任何第三方框架和库。具体功能：
+1）排序算法可视化：冒泡、选择、插入、快速、归并、堆排序，一共6种，数组里的每个数用一根柱子表示，高度就是数值大小，每一步操作——比较大小、交换位置、插入新位置——都有对应颜色高亮和动画效果。
+2）图算法可视化：BFS广度优先、DFS深度优先、Dijkstra最短路径，用户在Canvas上点一下就能创建节点，拖两下就能连边，自己设置每条边的权重，选个起点跑算法，访问顺序用颜色渐变一个个标出来。
+3）控制面板：有个速度滑块从0.5倍到5倍速随便调、有暂停/继续按钮、有单步执行一次走一步、有重置回到初始状态、还能自己手动输入数组或图结构数据。
+4）算法说明面板：每个算法旁边有时间复杂度、空间复杂度、稳不稳定这些说明，还有伪代码，可视化跑到哪一步，伪代码对应的那一行也同步高亮变色。
+5）对比模式：选两种排序算法同时跑同一份数据，左右两个窗口并排展示执行过程，各自统计总共比较了多少次、交换了多少次。
+6）历史记录：用localStorage存最近10次可视化用过的算法和数据配置，点一下就能快速回放当时的配置。
+
+**技术与实现约束：**
+- 每种排序算法必须使用策略模式实现：`SortStrategy` 抽象类定义 `async execute(array, onStep)` 接口，具体策略类实现各自算法逻辑，每一步通过 `onStep` 回调通知 UI 更新。`SortVisualizer` 上下文类持有当前策略并调用。
+- 图算法同样使用策略模式：`GraphStrategy` 定义 `async execute(graph, startNode, onStep)` 接口。
+- 算法执行必须使用 JavaScript 生成器函数（`function*`）实现步骤控制：每个 `yield` 代表一个可视化步骤，暂停/继续/单步通过生成器的 `next()` 控制。
+- Canvas 绘制逻辑封装到 `canvas-renderer.js`，排序渲染器和图渲染器分别封装，不允许在算法策略类中直接操作 Canvas。
+- 所有算法数据（数组、图结构）封装到 `data-model.js`，使用观察者模式通知 UI 数据变化。
+- 不允许引入任何第三方可视化库或 CSS 框架。
+
+**代码规范：**
+- JavaScript strict camelCase，ES6 模块，JSDoc 注释。
+- CSS 使用 BEM 命名规范。
+- 每个算法策略类必须有独立的单元测试，验证排序结果正确性和步骤数量。
+
+**验证说明：**
+1. 直接浏览器打开 `index.html` 就能用，不用装任何东西。
+2. 挨个试：
+   - 选"快速排序"，输入数组 `[5,3,8,1,9,2]`，点运行，观察每一步柱子颜色变化和交换动画，最后排好序。
+   - 运行中点暂停，然后点单步执行，确认每次只前进一步，不会跳。
+   - 切到图算法模式，点Canvas创建5个节点，连6条边设好权重，选起点跑Dijkstra，看最短路径高亮出来。
+   - 对比模式选冒泡排序 vs 快速排序，用同一份数据同时跑，快速排序的交换次数应该明显比冒泡少很多。
+   - 算法说明面板的伪代码，高亮行要和当前执行的步骤同步对上。
+3. 检查点：6种排序+3种图算法互相独立加新的不用改老代码、生成器函数控制步骤精确不跳步、Canvas画起来流畅不闪屏、对比模式统计的比较次数和交换次数准确。
+
+**扩展分析：**
 **表1：可新增模块及可能bug**
 
 | 新模块 | 功能简述 | 可能引起用户不满意的原因 |
@@ -1060,162 +932,376 @@ React + TypeScript + Vite + Tailwind CSS（纯前端，加密存储于 localStor
 
 ---
 
-## 17. 二维码与条形码综合生成平台 — 扩展分析
+### 17. 二维码与条形码综合生成平台
 
+**需求描述：**
+我要一个在线生成二维码和条形码的网站，用Flask做后端，前端用原生HTML/CSS/JS就行。具体功能：
+1）二维码生成：支持普通文本、URL网址、WiFi配置、邮箱、短信、地理位置、名片vCard这7种类型，每种类型前端有对应的表单给用户填参数；用户能设置二维码的大小、容错等级从L到H四级、前景色背景色、中间放个logo图片，加logo不影响扫出来。
+2）条形码生成：支持Code128、EAN-13、QR二维码（这里当条形码的一种特殊情况处理也行）、Code39、UPC-A一共5种格式，用户输入编码内容，生成对应的图片，每种格式有自己的校验——比如EAN-13必须是13位纯数字，不符合的直接提示。
+3）历史记录：登录的用户，生成的每张码都存数据库里，包括类型、输入的参数、生成时间，随时可以再下一遍、复制参数、或者删掉。
+4）批量生成：登录用户可以上传一个Excel或CSV文件，里面每行是一组参数，系统一次性批量生成一堆二维码，最后打包成ZIP下载。
+5）实时预览：用户在前端改参数——比如换颜色、改大小——页面上的码图实时刷新，不用每次都点生成按钮。
+
+**技术与实现约束：**
+- 二维码生成逻辑封装到 `qrcode_generator.py`，条形码生成逻辑封装到 `barcode_generator.py`，Flask 路由只负责参数解析和调用生成器，不允许在路由函数中直接写生成逻辑。
+- 码图生成使用工厂模式（Factory Pattern）：`CodeFactory` 根据传入的类型（`qrcode_text`、`qrcode_wifi`、`barcode_ean13` 等）返回对应的生成器实例，所有生成器实现统一接口 `generate(params) -> PIL.Image`。
+- 二维码加 Logo 使用装饰器模式（Decorator Pattern）：`LogoDecorator` 包装基础二维码生成器，在生成的图片上叠加 Logo，不需要修改原生成器代码。
+- 参数校验统一封装到 `validators.py`，每个校验器类对应一种码类型，实现 `validate(params) -> Tuple[bool, str]` 接口，路由层只负责调用校验器并返回错误信息。
+- Flask 蓝图拆分：`auth`（登录注册）、`codes`（单张生成）、`batch`（批量生成）、`history`（历史记录）四个 Blueprint。
+- 使用 Flask-Login 实现用户认证，密码用 werkzeug.security 的 generate_password_hash 哈希存储。
+
+**代码规范：**
+- Python 遵守 PEP 8，type hints 标注所有公开函数。
+- 所有类和函数必须有 Google 风格 docstring。
+- 前端 JavaScript strict camelCase，CSS 使用 BEM 命名。
+- 单元测试使用 pytest，覆盖：7种二维码类型参数校验、5种条形码校验、Logo叠加不破坏二维码可读性、批量生成ZIP包完整性。
+
+**验证说明：**
+1. 先装依赖启动服务器：`pip install -r requirements.txt` 之后 `python app.py`，浏览器打开 `http://localhost:5000`。
+2. 挨个试：
+   - 文本二维码：输"Hello World"，改颜色改大小，预览实时刷新，下载PNG用微信扫一扫能扫出来。
+   - WiFi二维码：填WiFi名称密码选WPA，生成后手机扫一扫自动连WiFi。
+   - EAN-13条形码：输"6901234567892"（13位），生成正常；故意输12位或带字母的，前端提示校验失败。
+   - Code128：输"ABC123456"，正常生成。
+   - 批量生成：准备一个5行数据的Excel（每行对应一个二维码参数），上传后生成一个ZIP，解压后5张图片都在。
+   - 登录后生成一张码，去历史记录里能看到，删了再刷新就没了。
+3. 检查点：7种二维码+5种条形码全部能生成、参数校验正确不通过、加了logo的二维码微信扫一扫依然能识别、批量ZIP包完整不缺图。
+
+**扩展分析：**
 **表1：可新增模块及可能bug**
 
 | 新模块 | 功能简述 | 可能引起用户不满意的原因 |
 |---|---|---|
-| 二维码风格模板库 | 提供圆角、渐变、手绘等装饰性二维码模板 | 好看的模板加了Logo之后扫不出来，白费功夫；模板太少，选来选去就那几个 |
-| 标签设计历史记录 | 保存之前排版过的A4标签方案，下次复用 | 找不到上次用的排版；存了十几个方案列表乱成一锅粥，没法搜索 |
-| Excel直连导入 | 批量生成时直接读取.xlsx文件，不用先转CSV | Excel有合并单元格就全乱套了；文件稍微大一点就卡死不动 |
-| 二维码批量下载ZIP | 把批量生成的码打包成ZIP一键下载 | 几百个图打包到一半浏览器崩了；ZIP里文件名乱码，根本分不清谁是谁 |
-| 扫码结果校验 | 生成后自动模拟扫描，验证码是否可读 | 每次生成都要等"校验"跑完，太慢了；校验说能扫，实际手机扫不出来 |
+| PDF417码支持 | 堆叠式二维条码生成 | 中文内容生成后扫出来是乱码；生成速度特别慢 |
+| Data Matrix码 | 小面积高密度二维条码 | 手机摄像头太近扫不出来；尺寸设太小就识别不了 |
+| 码解析识别 | 上传图片反向解析内容 | 拍照歪一点就识别不出来；模糊的图片直接失败 |
+| 艺术二维码 | 渐变、样式、背景图融合 | 搞得太花哨手机根本扫不出来；和我提供的底图融合错位 |
+| 批量定制水印 | 批量生成时统一加水印 | 水印挡住了关键区域导致无法扫描；不同尺寸的码水印位置不一致 |
 
 **表2：现有模块迭代方向及可能bug**
 
 | 现有模块 | 迭代方向 | 可能引起用户不满意的原因 |
 |---|---|---|
-| QR码生成 | 支持vCard名片、WiFi连接、地理位置等特殊内容类型 | 填了一堆名片信息，生成的码手机不识别；WiFi密码里有特殊字符就生成错误 |
-| 条形码生成 | 增加UPC-A、ITF-14等更多码制 | 数字位数输错了没有提示，生成了废码还不知道；有些码制要校验位，算错了白打 |
-| 码制解析 | 支持模糊、倾斜、部分遮挡的图片识别 | 照片稍微歪一点就认不出来；拍了半天一直提示"无法识别"，也不知道哪里有问题 |
-| A4标签排版PDF | 拖拽式可视化排版，实时预览所见即所得 | 拖拽的时候手一抖就跑偏了；预览看着好好的，打印出来位置全错了 |
-| 批量生成(CLI) | 支持并发生成，增加进度条和断点续传 | 进度条卡在99%不动了；断了重新跑，已经生成过的又来一遍，不知道哪些已完成 |
-| 批量解析(CLI→CSV) | 支持整个文件夹递归扫描，输出含文件名的详细报告 | 文件夹里有非图片文件就报错中断了；CSV里中文全是乱码，用Excel打开要手动转编码 |
+| 二维码7种类型 | 增加更多类型（事件、支付链接、Wi-Fi共享等） | 类型太多找不到我要的；支付链接格式不对扫出来无法支付 |
+| 容错等级L/M/Q/H | 增加自定义容错百分比、损坏区域模拟 | H级容错太大导致码图密密麻麻看不清；模拟损坏后真的扫不出来 |
+| Logo叠加 | 支持圆角Logo、Logo边框、多个Logo组合 | 圆角切完背景变成黑色块；Logo放太靠中间扫不出来 |
+| 自定义颜色 | 渐变色、主题色预设、颜色对比度检测 | 渐变色扫不出来但没提示；我选的颜色对比度不够系统也不提醒 |
+| 条形码5种格式 | 增加ITF-14、GS1-128、Codabar等 | 条码密度太大打印出来挤成一条黑线；校验规则不对导致生成的码扫不出来 |
+| EAN-13校验 | 支持自动计算校验位、校验位错误自动修正 | 自动算的校验位和我实际想要的不一样；修正错误时没提示用户 |
+| 批量生成ZIP | 增加批量导出PDF、设置命名规则、添加封面说明 | ZIP里的文件名完全看不懂哪个对哪个；PDF中文编码全是方块 |
+| 历史记录 | 增加收藏夹、标签分类、搜索筛选 | 历史记录太多翻半天找不到；搜索不到我记得的内容 |
+| 实时预览刷新 | WebSocket推送、批量预览对比 | 参数改一下就刷新一次，改得快了页面卡成狗；对比模式占的屏幕太大 |
 
-**表3：现有功能可能出现的bug**
+**表3：现有功能可能出现的bug/不满意原因**
 
 | 功能点 | 可能出现的bug/不满意原因 |
 |---|---|
-| QR码纠错级别选择 | 选了最高纠错级别又嵌了大Logo，结果码太密扫不出来；纠错级别选低了，稍微遮挡就扫不了 |
-| QR码颜色自定义 | 前景色和背景色太接近，肉眼看得到手机扫不到；某些颜色组合在部分安卓机上完全无法识别 |
-| QR码内嵌Logo | Logo尺寸调大了直接把码搞废了，但系统没有任何警告；Logo图片太大导致生成巨慢 |
-| 条形码Code128 | 输入中文不会报错，但生成的是乱码条形码；全角字符混进去不会提示 |
-| 条形码EAN-13 | 必须输入13位数字，少了多位数只给一个模糊报错；校验位算错了不帮忙自动纠正 |
-| 条形码Code39 | 允许输入的字符范围有限，但没说清楚哪些能输哪些不能，试了半天才报错 |
-| 码制解析(图片识别) | 只支持正着的二维码，歪着的识别不了；截图识别可以，拍照就不行，对光线要求太高 |
-| A4标签排版PDF(300DPI) | 300DPI下PDF文件巨大，几十个码就上百MB；浏览器直接预览卡到怀疑人生 |
-| 批量生成(CLI) | 命令行参数写错一个字母没有任何友好提示，只蹦出一堆英文报错；数据量大了内存直接爆掉 |
-| 批量解析(CLI→CSV) | 解析失败的那行没有标记，CSV里看起来和成功的一样；一个图解析出错整个任务就停了 |
+| 文本二维码 | 纯中文内容生成后扫出来是乱码；超长文本导致二维码密度太大扫不到 |
+| URL二维码 | URL里带特殊字符没转义好，扫出来网址打不开；自动加了http://但我要的是https |
+| WiFi配置二维码 | WPA3协议不支持，手机连不上；中文WiFi名称SSID编码错误 |
+| 邮箱二维码 | 邮箱地址没校验格式，生成一个无效的mailto链接；主题和正文内容中文乱码 |
+| 短信二维码 | 短信正文太长导致二维码太大；换行符在短信里消失了 |
+| 地理位置 | 经纬度精度丢失，扫码后位置差十万八千里；没有海拔信息 |
+| vCard名片 | 多手机号字段只存了一个；公司地址等字段被截断 |
+| 二维码容错等级 | L级容错印出来稍微皱一点就扫不出来；H级容错码图太大占地方 |
+| 自定义颜色 | 前景色太浅和背景色区分不大，手机扫不到；反色模式（浅色前景深色背景）不支持 |
+| 中间Logo叠加 | Logo占比太大挡住了三个定位角，扫不出来；透明Logo有黑边 |
+| Code128条形码 | 纯数字内容生成了字符模式导致密度太高；打印不出来控制字符 |
+| EAN-13条形码 | 校验位计算错误，生成的条码无效；第13位必须是数字，但有的用户会输入字母 |
+| Code39条形码 | 不支持小写字母，输入小写直接丢了；起止符*被自动删除导致扫描结果不对 |
+| UPC-A条形码 | 只支持美国，中国商品条码用不了；12位数字少了一位没校验 |
+| 参数校验 | 前端校验通过但后端又报错，不知道信谁的；校验失败的提示信息不知所云 |
+| 历史记录 | 存了几千条记录页面直接卡死；同一个参数重复生成多条记录占空间 |
+| 批量生成 | 100条以上生成超时报错；ZIP包下载下来解压出错 |
+| 实时预览 | 手机浏览器上预览的码扫不出来；预览图比最终下载的图模糊太多 |
 
 ---
 
-## 18. 智能间隔重复背单词系统 — 扩展分析
+### 18. 智能间隔重复背单词系统
 
+**需求描述：**
+我要一个基于艾宾浩斯遗忘曲线的背单词应用，前后端分离，后端FastAPI，前端React，数据库PostgreSQL。具体功能：
+1）单词本管理：支持从Excel或JSON批量导入单词，每个单词有拼写、音标、中文释义、例句、所属分类标签（比如"四级核心""托福""计算机专业"），导入时自动去重——拼写相同且语言相同的就算重复。
+2）SM-2间隔重复算法：用户每次复习一个单词，给自己打分（0完全不会、1模糊、2记住了但费劲、3秒反应），系统根据分数自动计算下次复习的时间、当前间隔天数、这个单词的难度系数EF，严格按SM-2算法来，不许瞎改公式。
+3）每日复习队列：每天打开App，系统自动列出今天需要复习的所有单词，按照到期时间排序，让用户一个一个过；今天的复习任务全部完成了，就从单词库里面抽没背过的新词加入队列，每天加多少新词用户可以自己设。
+4）学习数据统计与可视化：总复习次数、平均得分、累计记住了多少单词、忘记了多少、每个分类下的掌握率、过去7天/30天每天复习了多少个单词，用ECharts画成图显示在仪表盘上。
+5）标签分类和筛选：用户可以按标签筛选单词、按掌握程度筛选（新学的/正在学的/已掌握的/需要重新学的），也能自定义标签。
+6）单词测试模式：随机抽10个单词做选择题（四选一选正确的中文意思）或者拼写题（给中文写英文拼写），做完给分数和错题列表，错题自动加到明天的复习队列里。
+
+**技术与实现约束：**
+- SM-2 算法封装到 `services/spaced_repetition.py` 的 `SM2Calculator` 类中，严格按照：`EF' = EF + (0.1 - (5-q)*(0.08+(5-q)*0.02))`、`I(1)=1, I(2)=6, I(n)=I(n-1)*EF` 公式实现，不允许修改算法核心参数。
+- 复习队列计算使用策略模式：`QueueStrategy` 定义 `get_daily_queue(user, limit) -> list[Word]` 接口，`DueFirstStrategy`（优先到期）和 `NewWordsMixedStrategy`（新词旧词混合）为两种具体策略，默认使用 DueFirst。
+- 所有数据库模型使用 SQLAlchemy 2.0 声明式定义，禁止直接写 SQL 字符串。
+- 单词导入去重逻辑封装到 `services/import_service.py`，使用数据库唯一索引 + 内存 Bloom 过滤器（或 set）双重校验，不允许插入重复数据。
+- 数据统计接口封装到 `services/analytics_service.py`，不允许在路由层做聚合计算。
+- 前端使用 React 18 + React Router，使用 Zustand 或 Redux Toolkit 做全局状态管理（用户登录态、当前复习进度）。
+- 复习卡片组件必须支持键盘快捷键（1-4 对应四个打分、空格键下一个）。
+
+**代码规范：**
+- Python 遵守 PEP 8，FastAPI 使用 Pydantic v2 做请求/响应校验，type hints 全覆盖。
+- 所有类和函数必须有 Google 风格 docstring。
+- 前端使用 TypeScript，strict 模式开启。
+- CSS 使用 Tailwind CSS。
+- 后端使用 pytest + httpx 做接口测试，前端使用 Jest + React Testing Library 做组件测试。
+
+**验证说明：**
+1. 先启动后端：`pip install -r requirements.txt` 之后 `uvicorn app.main:app --reload`。
+2. 再启动前端：`cd frontend && npm install && npm start`。
+3. 挨个试：
+   - 导入20个测试单词到"四级"分类，导入后查数据库确认拼写相同的没重复插入。
+   - 开始复习，第一次复习给每个单词打0-3不同的分数，查数据库确认下次复习日期、EF值、间隔天数按SM-2公式算对了。
+   - 连续复习7天，观察每天队列里的单词数量和顺序是否符合SM-2间隔。
+   - 做一次测试模式，10道选择题，故意做错3道，明天的复习队列里应该自动包含这3个错题。
+   - 打开仪表盘，ECharts图表正常显示，7天复习数量对得上。
+4. 检查点：SM-2算法计算值100%正确、每日复习队列排序正确不遗漏、去重不插重复单词、测试做完错题自动加入明天复习、仪表盘数据和实际行为一致。
+
+**扩展分析：**
 **表1：可新增模块及可能bug**
 
 | 新模块 | 功能简述 | 可能引起用户不满意的原因 |
 |---|---|---|
-| 发音播放(TTS) | 每个单词自动朗读，支持英音美音切换 | 读出来的发音像机器人，和真人差太远；切换英音美音经常卡顿或没声音 |
-| 单词本分享/导入 | 支持从其他用户或社区导入词库 | 导入别人的词库格式不兼容，全变成乱码；导入后和自己的学习进度冲突，不知道该从哪开始 |
-| 每日打卡提醒 | 设定时间推送复习提醒 | 提醒时间到了不弹，过了才来；关了提醒还在天天弹，烦死了 |
-| 例句库 | 每个单词配3-5个真实语境例句 | 例句太老太书面，日常根本不会这么用；有些单词没有例句，干巴巴一个释义 |
-| 词汇量测试 | 定期评估当前词汇量水平 | 测出来的结果和实际感觉差太远；每次测都不一样，不知道该信哪次 |
+| 发音语音 | 英美真人发音、自动朗读 | 发音声音太小听不清；中文例句没发音功能 |
+| 词根词缀拆解 | 智能拆分词根词缀辅助记忆 | 拆分逻辑不对，经常拆错词；词根解释太简略没用 |
+| 图片联想记忆 | 每个单词配一张联想图片 | 配图和单词意思不搭，反而干扰记忆；中文词搜不到合适的图 |
+| 好友PK对战 | 两个好友在线答题比速度 | 网络延迟导致我先答对但显示输了；PK模式和平时复习的题库不互通 |
+| 学习计划定制 | 根据考试日期自动安排每日任务 | 算出来的每日量太大根本完不成；中间断了几天计划全乱了重来 |
 
 **表2：现有模块迭代方向及可能bug**
 
 | 现有模块 | 迭代方向 | 可能引起用户不满意的原因 |
 |---|---|---|
-| 词库管理 | 支持在线词库市场，一键添加四六级/考研/GRE等 | 词库分类乱，想找考研词库翻了半天；有些词库质量差，释义全是机翻 |
-| CSV导入 | 支持更多格式(XLSX/JSON)，增加格式预校验 | 表格列的顺序和系统要求不一样，导进去全是空的；校验说格式OK，结果导入一半报错 |
-| SM-2间隔重复算法 | 增加自定义间隔策略，允许手动调整复习节奏 | 自己调完节奏后发现全乱了，复习量突然堆成山；参数太多看不懂，调了也不知道效果 |
-| 5级评分 | 增加快捷键评分和滑动评分 | 快捷键记不住，按错了还改不了；滑动操作手机上容易误触 |
-| 错题本 | 增加错题导出和按错误频率排序 | 导出的错题排成一大坨，没法按类型筛选；错题越积越多，看着就绝望 |
-| 学习统计 | 增加学习日历热力图、连续打卡天数 | 热力图加载慢，数据多了就卡；换了个时区打卡天数就断了，白坚持了那么久 |
+| 单词导入 | 支持Anki导入、有道导出格式、PDF词汇书解析 | 有道导出格式版本不一样解析不出来；PDF词汇书排版乱识别结果一塌糊涂 |
+| 自动去重 | 增加语义去重、英美拼写合并、大小写不敏感 | center和centre算同一个词我同意，但color和colour也合并我不同意 |
+| SM-2算法 | 支持Leitner系统切换、FSRS算法对比、自定义参数 | FSRS预测比SM-2准但是换算法后历史数据全乱了；改参数后效果更差但不知道怎么改回去 |
+| 每日复习队列 | 增加番茄钟计时、复习提醒推送、休息模式 | 番茄钟25分钟到了响铃吓到我；休息模式结束了不提醒我继续学 |
+| 新词引入 | 智能匹配新词难度、按词根分组引入、避免形近词连续出现 | 引入的新词全是我早就会的浪费时间；相似词放一起反而记混了 |
+| 学习统计 | 增加热力图（GitHub风格）、预测掌握日期、和他人对比 | 对比排名里全是托我觉得被羞辱了；预测日期说6月能背完结果到9月还没搞定 |
+| ECharts可视化 | 增加桑基图（掌握状态流转）、词云、动画效果 | 动画太花哨分散注意力；桑基图数据流太复杂看不懂 |
+| 标签分类 | 自动打标签、标签树层级、标签权重 | 自动打标签一半错的还得我手动改；标签层级太多点半天找不到 |
+| 掌握程度筛选 | 增加AI评估掌握度、人工抽查验证 | AI说我掌握了但一考全不会；抽查模式太频繁烦死人 |
+| 选择题测试 | 增加听音选义、看英释选词、听力填空等 | 听力题读太快听不清；英英释义全是生词等于没做 |
+| 拼写题 | 增加部分提示、模糊匹配、时态正确判定 | 字母顺序错一个就全错太苛刻；时态单复数这些细节不应该判死刑 |
+| 错题自动入队 | 错题优先级加权、相似题也一起复习、3次错误触发强化 | 错题太多明天根本复习不完没尽头；相似题本来就记混放在一起更乱 |
 
-**表3：现有功能可能出现的bug**
+**表3：现有功能可能出现的bug/不满意原因**
 
 | 功能点 | 可能出现的bug/不满意原因 |
 |---|---|
-| 词库手动添加 | 加了一个词发现释义写错了想改，没有编辑入口只能删了重来；词多了以后列表加载巨慢 |
-| CSV导入 | 编码不是UTF-8就全乱码，但系统不会提示该用什么编码；第一行如果是表头，第一个词就废了 |
-| SM-2算法5级评分 | 评分选项含义不直观，1和2到底差在哪不清楚；选了"简单"之后好几天不出现，忘了啥意思 |
-| 每日待复习队列 | 某天没复习，第二天复习量翻倍堆积，根本做不完；复习队列太长看不到尽头，直接放弃了 |
-| 词根词缀分析器(50个) | 只覆盖50个词根，很多常用词分析不了；分析结果感觉在凑数，牵强附会的关联 |
-| 错题本升级逻辑(连续3次≥2升级) | 明明记住了但手滑评低了，又掉回错题本；连续3次条件太严，一个词卡在错题本里出不来 |
-| 学习统计ASCII折线图 | 终端宽度不一样图就变形了；日期多了挤在一起根本看不清哪天是多少 |
-| 学习统计预测 | 预测说30天能背完，结果根本做不到；预测不考虑中途可能偷懒，过于乐观 |
-| 词库切换 | 想同时背两个词库，切换的时候另一个的学习进度没了；删了词库但学习记录还在，看着别扭 |
+| Excel导入 | 中文列名识别不了，说"拼写列不存在"；空单元格导致导入报错但不说第几行 |
+| JSON导入 | UTF-8 BOM头导致解析失败；嵌套结构的标签字段被忽略了 |
+| 单词去重 | 英式拼写和美式拼写算两个词（如travelling/traveling）；大小写不同算重复但我觉得应该是同一个 |
+| SM-2公式EF计算 | 打0分后EF继续下降，降到1.3以下没有设置下限；间隔天数算出来是负数 |
+| 间隔天数I计算 | 连续3分多次之后间隔天数暴涨到几百天，等那么久早就真忘了；刚背的词第二天就出现频率太高 |
+| 每日复习队列排序 | 到期的词有100个，没有分页一加载就卡死；排序是随机的不是按最该复习的先来 |
+| 新词每日数量 | 设置每天加10个新词但实际加了20个，复习量爆炸；连续几天没学，新词攒了一堆一次性塞给我 |
+| 总复习次数统计 | 同一个词同一天点了好几次下一个都算进去，数据虚高；统计页面和实际复习记录对不上 |
+| 平均得分 | 只算最近一个月的还是全时间的没说清楚，用户以为有bug；0分权重和3分一样拉低了平均分 |
+| 累计记住单词 | 记住之后忘了解除关系，但统计里还在"记住"里；3分过一次就算记住太草率 |
+| 分类掌握率 | 分类里只有1个词，复习一次掌握率就100%没意义；小分类掌握率波动剧烈 |
+| 7天/30天复习量图 | 昨天的数据今天看变了，因为时区问题0点分界算错了；没有补打卡功能，断一天记录不连贯 |
+| 标签筛选 | 多标签交集筛选逻辑有bug，选了A+B出来的是A或B的并集；没有保存筛选条件的功能 |
+| 掌握程度筛选 | 状态切换逻辑不透明，不知道什么样算"已掌握"；有些词状态忽好忽坏感觉在随机变 |
+| 自定义标签 | 删除标签后单词没分类了变成孤儿；标签改名要一个一个改历史词 |
+| 选择题四选一 | 干扰选项太弱智一眼就能排除，起不到测试效果；正确选项有歧义两个都对 |
+| 拼写题 | 美式拼写法打英式算错用户不服；首字母大小写没自动处理打错被冤枉 |
+| 错题入复习 | 测试里做错过一次就算，实际可能是手滑；没有忽略非知识性错误（如打错字）的机制 |
 
 ---
 
-## 19. 代码质量分析与技术债务仪表盘 — 扩展分析
+### 19. 代码质量分析与技术债务仪表盘
 
+**需求描述：**
+我要一个代码质量分析的仪表盘网站，后端Django，前端Vue 3，数据库PostgreSQL加Redis缓存。具体功能：
+1）Git仓库分析：用户输入一个本地Git仓库路径或者远程GitHub仓库URL，系统自动拉代码，跑一遍静态分析——圈复杂度、代码行数、函数数量、类数量、重复代码块、TODO/FIXME注释数量、import循环依赖检测，每个文件有分析结果。
+2）技术债务识别：根据圈复杂度、函数长度、重复率、未解决的TODO、缺少注释的公开函数，按权重算一个技术债务分数（0-100，越高债务越重），并估算修复这些问题大概需要多少人天。
+3）代码风格检查：集成pylint/flake8（Python）和ESLint（JavaScript），把检查出来的问题一条条列出来，带严重程度（error/warning/info）、文件路径和行号、具体的修复建议。
+4）提交历史趋势分析：分析Git日志，按周统计每个作者的提交次数、修改的文件数、增删行数，画成趋势图；还能看每个开发者贡献的代码量百分比饼图。
+5）阈值告警系统：用户可以自定义告警阈值——比如圈复杂度>20就告警、重复率>15%就告警、技术债务分数>70就告警，每次分析完之后检查有没有超过阈值的，生成告警列表。
+6）可配置的仪表盘首页：用户可以自定义首页上放哪些Widget卡片（比如技术债务总分、最近7天提交趋势、重复率最高的5个文件、告警列表），每个卡片的位置、大小、顺序都能拖拽调整，设置存用户偏好里。
+
+**技术与实现约束：**
+- 静态分析器使用策略模式：`StaticAnalyzer` 抽象基类定义 `analyze(repo_path) -> AnalysisReport` 接口，`PythonAnalyzer`、`JavaScriptAnalyzer`、`GenericAnalyzer`（通用的行数/注释统计）为具体策略，支持多语言扩展。
+- Git 仓库操作封装到 `git_operations.py`，使用 GitPython 库，禁止在业务逻辑中直接调用 subprocess 执行 git 命令。
+- 技术债务评分算法封装到 `tech_debt_calculator.py`，权重配置存数据库 `DebtWeightConfig` 表，用户可在后台修改，不允许硬编码权重。
+- 代码风格检查结果使用适配器模式统一输出：`LintAdapter` 基类定义 `normalize(raw_result) -> list[LintIssue]`，`PylintAdapter`、`Flake8Adapter`、`EslintAdapter` 为具体适配器，将各工具的不同输出格式统一成 `LintIssue` 数据结构。
+- 仪表盘 Widget 使用观察者模式：每个 Widget 订阅对应数据源（分析报告、趋势数据、告警数据），数据更新时自动刷新显示。
+- Django 应用拆分：`repos`（仓库管理）、`analysis`（分析任务）、`quality`（质量指标）、`dashboard`（仪表盘配置）、`alerts`（告警）五个 app。
+- 长耗时分析任务使用 Celery + Redis 实现异步执行，分析完成后通过 Django Channels WebSocket 推送结果给前端。
+
+**代码规范：**
+- Python 遵守 PEP 8，Django 使用 CBV（基于类的视图），type hints 全覆盖。
+- 所有公开方法和类必须有 Google 风格 docstring。
+- 前端使用 Vue 3 Composition API + TypeScript，Pinia 做状态管理，Vite 构建。
+- 前端 UI 组件库使用 Element Plus。
+- 后端使用 pytest + pytest-django 做测试，前端使用 Vitest + Vue Test Utils 做测试。
+
+**验证说明：**
+1. 启动后端：`pip install -r requirements.txt` 之后 `python manage.py migrate`、`python manage.py runserver`。
+2. 启动 Celery worker 和 beat（开另两个终端）：`celery -A config worker -l info`、`celery -A config beat -l info`。
+3. 启动前端：`cd frontend && npm install && npm run dev`。
+4. 挨个试：
+   - 添加一个测试仓库（比如这个项目本身），触发全量分析，任务列表里能看到状态从"排队→运行中→完成"，期间Celery日志有输出。
+   - 分析完成后，打开质量报告，能看到圈复杂度前10高的函数、重复代码块、TODO列表、循环依赖检测结果。
+   - 打开技术债务页面，能看到总分、分维度得分（复杂度/重复率/注释/TODO）、估算人天，并且可以在后台改权重后重算，分数会变化。
+   - 打开风格检查页面，能看到 pylint/flake8/eslint 的问题列表，按严重程度筛选，每个点击跳转到对应文件+行号。
+   - 打开提交趋势，按周统计的增删行数、作者提交次数图表正常。
+   - 设置一个低阈值，比如圈复杂度>10告警，重新分析后，告警列表里应该出现对应条目。
+   - 在仪表盘首页拖拽几个Widget，刷新页面后位置和配置保留。
+5. 检查点：静态分析六大类指标结果正确、技术债务评分权重配置可修改、风格检查结果多工具统一格式正常显示、提交趋势数据和git log对得上、超阈值正确出告警、Widget配置持久化正常。
+
+**扩展分析：**
 **表1：可新增模块及可能bug**
 
 | 新模块 | 功能简述 | 可能引起用户不满意的原因 |
 |---|---|---|
-| 修复建议生成 | 针对每个问题自动给出修复代码片段 | 建议的代码直接复制过去跑不通；修复建议太通用，跟实际代码完全不搭 |
-| 团队协作对比 | 多人上传报告后对比谁的问题最多、谁改善最快 | 排名太伤士气，没人想当倒数第一；有人故意不传报告，数据不全面对比没意义 |
-| Git集成自动分析 | 连接Git仓库，每次提交自动生成质量报告 | 仓库太大clone半天；提交频繁的话报告堆积如山，根本看不过来 |
-| 导出PDF/邮件报告 | 一键生成可分享的质量报告 | 生成的PDF排版丑，发给领导拿不出手；邮件里表格变形，还得自己截图 |
-| 忽略规则配置 | 标记某些问题为"已知/不修复"，不再计入评分 | 配置规则太复杂，配了半天没生效；团队成员各自配各自的，标准不统一 |
+| 单元测试覆盖率 | 集成pytest-cov/jest-coverage报告 | 覆盖率计算不准，把测试代码也算进去了；显示90%实际测到的逻辑没几个 |
+| 安全漏洞扫描 | 集成Bandit/njsscan/OWASP依赖扫描 | 误报太多，一个小问题标成高危吓死我；扫描结果没有修复建议 |
+| 依赖健康度检测 | 过期依赖/废弃包/许可证合规检查 | 依赖树太深检查半天没完；某个包说"非活跃维护"但其实作者只是在憋大版本 |
+| 多分支对比 | 不同分支代码质量对比变化 | 分支太多了对比到一半崩了；对比报告格式看得眼花缭乱 |
+| CI/CD集成 | GitHub Actions/GitLab CI提交自动分析 | 流水线集成半天配不上；每次提交都分析太慢影响部署 |
 
 **表2：现有模块迭代方向及可能bug**
 
 | 现有模块 | 迭代方向 | 可能引起用户不满意的原因 |
 |---|---|---|
-| ESLint/Pylint报告解析 | 增加更多工具适配(SonarQube/Checkstyle/SwiftLint) | 新工具的报告格式变了就解析失败；不同工具对同一问题的分类不一样，统计口径混乱 |
-| 问题分布图 | 增加交互式图表，支持点击钻取到具体文件 | 图表花里胡哨但加载巨慢；点击钻取后不知道怎么返回上一层 |
-| 圈复杂度热力图 | 支持按目录/文件钻取，颜色可自定义 | 颜色太接近分不清高低；大项目文件太多，热力图密密麻麻看不清 |
-| 代码异味检测 | 从10条规则扩展到20+，增加可自定义规则 | 新规则太严，正常代码也报异味；自定义规则的写法没人看得懂 |
-| 技术债务评分 | 增加评分趋势预测、项目间横向对比 | 评分忽高忽低，同样的代码换个版本分数就变了；和别的项目比评分，但代码量差太大没可比性 |
-| 趋势追踪 | 增加自动快照、可设置追踪频率 | 快照太多localStorage就满了，老数据自动删了还不知道；两次上传间隔太久，趋势线中间断一大截 |
-| localStorage存储 | 增加数据导出/导入，支持IndexedDB大容量存储 | 换个浏览器数据全没了；localStorage满了以后旧数据被悄悄覆盖，历史记录没了 |
+| 圈复杂度 | 支持认知复杂度、嵌套复杂度等更多指标 | 新指标的得分和圈复杂度打架，不知道信哪个；复杂度单位不直观没法解释给PM |
+| 重复代码检测 | 增加跨文件语义重复、代码片段指纹去重 | 语义重复检测太慢，大仓库跑一小时；误报多，长得像但逻辑不一样也被合并 |
+| 循环依赖检测 | 支持模块级循环、包级循环、动态导入检测 | 误报多，把正常的延迟加载也算成循环；循环依赖路径太长列出来看不清 |
+| 技术债务评分算法 | 增加AI评估债务优先级、债务分类（设计债务/代码债务/文档债务） | AI说某个债务"不重要"但实际上是个定时炸弹；分类标准模糊大家理解不一样 |
+| 修复人天估算 | 增加人天区间（乐观/悲观/最可能）、团队速度校准 | 估算的人天和实际差3倍，完全不可信；不同团队速度差别大但没有校准界面 |
+| Pylint/Flake8集成 | 增加更多linter（mypy, black检查, isort检查）、自动修复建议 | Linter之间规则冲突，一会儿加空格一会儿删空格；自动修复把我代码搞乱了 |
+| ESLint集成 | 支持TSLint、Prettier规则、Vue SFC lint | .vue文件lint报错但其实没问题；规则太严写不动代码 |
+| 按周/月趋势 | 增加季度/年度趋势、移动平均线、异常值标注 | 异常点标注太敏感，稍微波动就标红；平滑之后看不出真实变化 |
+| 阈值告警 | 增加告警抑制、告警合并、通知渠道（邮件/钉钉/飞书） | 告警洪水，一分钟十条烦死了；飞书通知半天配不上 |
+| 可配置Widget | 增加更多Widget（开发者排行榜、最活跃文件等）、共享仪表盘模板 | 模板太少，每个团队都得自己搭一遍；共享后别人改了我这边也变了 |
+| Widget拖拽布局 | 响应式布局、栅格对齐、多尺寸切换 | 手机上布局全乱了；拖拽时偶尔错位对不齐 |
 
-**表3：现有功能可能出现的bug**
+**表3：现有功能可能出现的bug/不满意原因**
 
 | 功能点 | 可能出现的bug/不满意原因 |
 |---|---|
-| ESLint报告解析 | 报告文件稍微格式不一样(多一个空行/少一个字段)就解析失败，也不说哪行有问题；ESLint升级后输出格式变了，解析直接崩 |
-| Pylint报告解析 | Pylint默认输出格式和解析器期望的不一样，要手动调参数才知道；中文路径的报告解析出来文件名全是乱码 |
-| 问题分布图柱状图 | 问题数太多时柱子挤成一条缝；颜色区分度不够，红橙黄分不清谁是谁 |
-| 问题分布图饼图 | 分类太多饼图切了二十几块，颜色开始重复；小块标签重叠，啥也看不清 |
-| 问题分布图TOP10 | 有些问题明明更重要却没进TOP10，因为按数量排的不按严重性排；第10和第11只差1个，但第11直接消失 |
-| 圈复杂度热力图 | 文件名太长显示不下被截断，鼠标悬停也看不全；缩放之后热力格对不齐了 |
-| 代码异味检测(10条规则) | 规则太死板，完全正常的代码也被标异味；检测速度慢，大项目要等好几分钟 |
-| 技术债务评分(0-100) | 评分标准不透明，不知道怎么算出来的；改了一个小问题分数暴涨，改了个大的才涨1分 |
-| 趋势追踪(多次上传对比) | 上传的文件名不一致就认为是新项目，趋势线全断了；对比结果看不出是变好了还是变差了 |
-| 纯前端localStorage | 浏览器清缓存数据就没了；数据存多了页面加载越来越慢，最后整个仪表盘卡死 |
+| 本地Git仓库路径 | Windows下路径斜杠问题直接报错；权限不够读不了仓库也不说明原因 |
+| 远程GitHub URL | 私有仓库访问令牌配置不生效；拉取大仓库超时报错 |
+| 代码行数统计 | 把空行、注释行、生成的代码（.min.js）全算进去了；CSV文件被当成代码统计 |
+| 圈复杂度计算 | Python的装饰器增加了复杂度但其实是冤枉的；switch-case多的函数虚高 |
+| 重复代码检测 | 生成的代码被当成重复；变量名不一样但逻辑一样的检测不出来 |
+| TODO/FIXME统计 | 把注释里"// TODO: 已经完成xxx"也算成未解决；多语言TODO关键词不认识（如日文// やること） |
+| 循环依赖检测 | 只检测了import没检测动态导入；循环链超过3层就截断了显示不全 |
+| 技术债务总分 | 权重配置改了但历史分数没重算，前后对比没意义；评分太粗，只有1分差别看不出好坏 |
+| 人天估算 | 复杂项目人天估算偏低；简单项目估算偏高，没有根据项目规模调整系数 |
+| Pylint检查结果 | 不同版本pylint规则不一样，同一代码在不同环境跑结果不同；有错误码但没有中文解释 |
+| Flake8检查结果 | 插件装不装结果差很多；行号不准，代码改了之后还指到旧行 |
+| ESLint检查结果 | 跨文件检查跑半天；.eslintrc配置读取失败就全跳过也不报错 |
+| 统一LintIssue格式 | 不同linter的严重程度映射不一致，pylint的warning和eslint的warning不是一个级别的 |
+| 按周提交统计 | 法定节假日全是0，趋势图上掉一个大坑很突兀；cherry-pick的提交作者显示错了 |
+| 作者贡献饼图 | Merge commit的增删行算到merger头上冤枉他了；同一个作者两个邮箱统计成两个人 |
+| 自定义阈值 | 阈值改完保存了但下次分析还是用旧的；不同项目不能设不同阈值 |
+| 告警生成 | 同一个问题每次分析都生成新告警，列表里重复一堆；告警关了下次分析又开了 |
+| Widget拖拽 | 松手后位置和拖的时候看到的不一样；撤销/重做没有拖错就GG |
+| Widget配置持久化 | 保存配置偶尔丢失，下次打开又是默认；多端同步时互相覆盖 |
+| Celery异步任务 | 分析任务失败了状态一直在"运行中"卡死；大任务内存泄漏worker被OOM杀掉 |
+| WebSocket推送 | 页面刷新就断开了之前没推到的消息全丢了；推送延迟比直接刷新页面还高 |
 
 ---
 
-## 20. 正则表达式实验室 — 扩展分析
+### 20. 正则表达式实验室
 
+**需求描述：**
+我要一个在线写正则、测正则、学正则的学习工具网站，纯前端不需要后端，就一个静态页面用Vite打包发布也行，但要写得功能完整。具体功能：
+1）正则表达式编辑器：输入框写正则表达式（支持g/i/m/s这几个标志位开关），旁边有实时语法高亮——元字符（. * + ? ^ $ \d \s等）、字符类[]、分组()、量词、锚点，不同元素颜色不一样，还能括号匹配高亮对应关系。
+2）测试文本区域：用户输入要匹配的文本，所有匹配到的内容在文本区实时高亮成黄色背景，每个匹配项分别标成1号、2号、3号匹配的序号；分组捕获的子匹配单独列在下面。
+3）正则调试分步执行：显示正则引擎是怎么一步一步匹配的，当前走到正则的第几个字符、当前正在尝试匹配文本的哪个位置、匹配成功或失败的原因，支持上一步、下一步、跳到开头、跳到结尾。
+4）常用正则模板库：内置几十种常用正则（手机号、邮箱、身份证号、URL、IP地址、日期格式、中文字符、密码强度、十六进制颜色...），分类放好，用户一键填入编辑器，每个模板有说明、示例文本、以及注意事项（比如手机号正则不支持新号段）。
+5）自定义保存与分享：用户把自己写好的正则保存到localStorage，或者生成一个分享链接——把正则本身和测试文本base64编码到URL的hash里，别人打开这个链接自动填上正则和测试文本。
+6）可视化正则结构图：把正则表达式解析成语法树，然后画成一张图——分支用分叉线、量词标注在节点旁边、分组用方框包起来、字符集用彩色节点，鼠标悬停在节点上显示对应的正则片段和含义。
+
+**技术与实现约束：**
+- 正则解析器必须手动实现递归下降解析器（Recursive Descent Parser），不允许引入 regexp-tree、regjsparser 等第三方解析库。语法树节点类型至少包含：Literal、CharClass、Group、Alternation、Quantifier、Anchor、Backreference、Escape 八种。
+- 正则调试引擎必须手动实现 NFA 引擎（非确定性有限自动机）模拟，不允许直接调用 JavaScript 原生的 `string.match()` 来获取步骤。NFA 状态转换表由解析后的语法树构建，每一步状态转换（consume 字符、epsilon 空转移）都会产生一条调试记录（当前位置、匹配字符、成功/失败、新状态集合）。
+- 高亮渲染使用访问者模式（Visitor Pattern）：`AstVisitor` 抽象类定义对每种 AST 节点的访问方法，`HighlightVisitor`（实现语法高亮）、`NfaBuilderVisitor`（构建NFA）、`GraphVizVisitor`（生成可视化图数据）为三种具体访问者，扩展新功能只需新增 Visitor 子类，不需要修改 AST 节点类。
+- 常用正则模板使用数据驱动方式定义在 `templates/` 目录下的 JSON 文件中（一个分类一个文件），运行时通过动态 import 加载，新增模板不需要改代码。
+- 分享链接的 URL hash 编解码封装到 `share-link.js`，采用 base64url 编码 + 简单 LZ-String 压缩（压缩算法也要手动实现基础版，不允许引入 lz-string 库，允许写一个 20 行以内的简易 LZ77）。
+- 正则结构图使用原生 SVG 绘制，不允许引入 D3、Cytoscape 等图可视化库，SVG 渲染逻辑封装到 `regex-graph.js`。
+- 整体使用 React 18 + TypeScript + Vite 搭建，但除了 React/Vite 本身，不允许引入任何其他 UI 框架或第三方库（如 Ant Design、Tailwind、React Router 都不许用），样式用原生 CSS Modules。
+
+**代码规范：**
+- TypeScript strict 模式严格开启，noImplicitAny、strictNullChecks 等全打开，所有函数必须有完整的参数和返回值类型注解。
+- 代码注释详细，特别是解析器和 NFA 引擎部分，每个关键函数有 JSDoc 解释算法思想。
+- CSS 使用 CSS Modules，类名使用 kebab-case。
+- 核心模块（解析器、NFA引擎、访问者、压缩算法）各有独立的单元测试文件，使用 Vitest。
+- 递归下降解析器必须测试通过至少 20 个覆盖各种语法特性的正则表达式样例。
+- NFA 引擎必须测试通过解析器生成的 AST，并验证每步状态转换数与预期一致。
+
+**验证说明：**
+1. 启动：`npm install && npm run dev`，浏览器打开 Vite 给出的地址。
+2. 挨个试：
+   - 写正则 `(\d{4})-(\d{2})-(\d{2})` 测试文本 `2026-06-20 和 2024-12-31`，高亮显示出两个日期匹配，分组分别显示年份、月份、日期，括号匹配高亮对应关系正确。
+   - 标志位切换：用 `/^hello/im` 测试 `HELLO\nhello\nHELLO1`，m模式下每行开头都匹配，i模式不区分大小写。
+   - 打开分步调试，正则 `a+b?c`，文本 `aaabxc`，一步步点下一步，观察NFA状态集合变化，能看到a的贪婪匹配、b可匹配0次、最后匹配到c的完整过程。
+   - 从模板库选"身份证号"，一键填入，用测试文本测一个真实身份证的前17位和末位校验位。
+   - 自己写一个正则 `user\d{3}`，点保存，刷新页面还在；点分享，复制链接开新标签页打开，正则和测试文本自动恢复。
+   - 写复杂正则 `(ab|cd)+(e|fg)?`，观察SVG结构图，分组用方框包着、分支用分叉、量词+和?标注在节点旁，悬停节点显示对应代码。
+3. 检查点：手动写的递归下降解析器8种节点全覆盖、手动实现的NFA引擎每步状态可追溯且结果与原生正则一致、访问者模式三种Visitor各司其职、模板库一键填入+分享链接编解码+SVG结构图全跑通无外部依赖。
+
+**扩展分析：**
 **表1：可新增模块及可能bug**
 
 | 新模块 | 功能简述 | 可能引起用户不满意的原因 |
 |---|---|---|
-| 正则可视化调试器 | 逐步执行正则，显示每一步的匹配路径 | 匹配步骤太多了看不过来；复杂正则调试的时候界面卡到爆 |
-| 正则片段组合器 | 拖拽常用片段拼装正则，不用手写 | 拼出来的正则冗余一堆括号，自己都看不懂；可拖的片段太少，稍微复杂点还是得手写 |
-| 正则分享社区 | 发布和收藏正则表达式，互相评价 | 搜一个"邮箱验证"出来二十个版本，不知道哪个靠谱；别人的正则直接复制过来场景不对，用不了 |
-| 正则 Cheat Sheet 速查 | 内置交互式语法速查表，点击可插入 | 速查表内容太多找不到想查的；点击插入的位置不对，老插到正则中间 |
-| 保存与收藏 | 保存常用正则到本地，支持标签分类 | 保存太多找不到，标签系统不好用；换个浏览器收藏全没了 |
+| 反向引用完整支持 | \1\2\3...对捕获组内容的回溯匹配 | 嵌套分组的组号搞不明白；捕获了空字符串之后反向引用行为诡异 |
+| 正/负向零宽断言 | (?=a)(?!a)(?<=a)(?<!a)可视化 | 断言匹配的位置看不清在哪；负向断言失败的原因调试时看不懂 |
+| 正则替换模式 | replace方法带$1$2分组引用 | 支持$&$`$'这些特殊变量少了$就用不了；替换后预览乱套 |
+| 多语言正则语法说明 | JS/Java/Python/Go差异对照 | 每个语言的差异说明不全，踩了坑还是不知道；Python的re.DOTALL和JS的/s不是一回事 |
+| 正则性能分析器 | 检测灾难性回溯、建议优化写法 | 分析器说有性能问题但我不知道怎么改；简单正则也被误报成有问题 |
 
 **表2：现有模块迭代方向及可能bug**
 
 | 现有模块 | 迭代方向 | 可能引起用户不满意的原因 |
 |---|---|---|
-| 实时匹配高亮 | 支持多行模式高亮、匹配计数、高亮颜色自定义 | 多行文本高亮区域错位，对不上号；匹配结果几百个时页面卡到打字都有延迟 |
-| 分组/命名分组高亮 | 分组结果用不同颜色区分，命名分组显示标签名 | 分组嵌套多了颜色不够用又开始重复；命名分组的标签和文本重叠看不清 |
-| 语法树Canvas可视化 | 支持缩放、拖拽、点击节点跳转对应正则位置 | 树太大了缩放后看不清节点文字；拖拽和选择文本冲突，想选中文字老拖动画布 |
-| 语法自然语言解释 | 增加中文解释、逐步详细解释模式 | 解释太机器味，"匹配一个字符"到底是哪个字符？；超长正则解释比正则本身还长，看了更糊涂 |
-| 30+常用模板库 | 增加模板搜索、标签筛选、用户自定义模板 | 搜"手机号"出来一堆，国内国外的混在一起；模板验证规则过时了，新号段通不过 |
-| 性能基准(回溯检测) | 增加回溯步数可视化、危险正则预警 | 预警太频繁，写个正常正则也弹警告；回溯步数显示不直观，看不懂到底慢在哪 |
-| 替换预览 | 支持更多引用方式($2/$`/$')、实时预览替换结果 | 替换结果和实际代码里跑出来不一样；引用写错了不提示，替换结果直接变成空白 |
-| 浏览器+CLI双模式 | CLI增加文件批量替换、输出着色 | CLI参数又多又长，每次都要翻文档；着色在某些终端上显示乱码 |
+| 语法高亮编辑器 | 支持自动补全、错误诊断波浪线、括号自动补全 | 自动补全选项太多不知道选哪个；写错了的语法标红但不说原因 |
+| 标志位开关(gims) | 增加u(unicode)、y(sticky)、d(hasIndices)等标志位 | 新标志位效果看不懂；y粘性模式和/g差别讲不清 |
+| 匹配高亮与分组 | 支持捕获组命名(?<name>)、嵌套分组层级展示 | 命名组和数字组同时显示太乱；嵌套组5层以上显示挤成一团 |
+| NFA分步调试 | 增加每个状态的epsilon闭包可视化、性能统计（尝试次数） | 简单正则NFA有几十个状态，图太乱看不懂；1000+次尝试的调试日志卡顿 |
+| 常用正则模板库 | 增加更多分类（金融类/编程类/日志类）、用户提交模板审核 | 模板质量参差不齐，有的模板根本不通用；审核流程没人管全是垃圾 |
+| 模板注意事项说明 | 增加每个模板的反例、不支持的边界情况、风险提示 | 注意事项写太长没人看；反而用户以为写了模板就万无一失 |
+| 自定义localStorage保存 | 增加文件夹分类、标签搜索、云端同步 | 保存了几百条正则找半天；云端同步冲突了不知道留哪个 |
+| 分享链接URL hash | 增加短链接服务、链接有效期、密码保护 | 长正则压缩完URL依然超长浏览器不支持；短链接服务挂了就全没了 |
+| LZ-String压缩 | 增加压缩率对比、更大正则的流式压缩 | 某些正则压缩后反而更长了；大文本压缩时浏览器卡死 |
+| SVG正则结构图 | 支持放大缩小平移、节点拖拽、高亮节点对应正则代码 | 复杂正则SVG节点几百个根本看不清；拖乱了无法一键还原布局 |
+| 悬停节点解释 | 增加动画演示匹配过程、点击节点跳转到对应代码位置 | 动画太快看不懂；跳转后和正则编辑器的光标位置不同步 |
 
-**表3：现有功能可能出现的bug**
+**表3：现有功能可能出现的bug/不满意原因**
 
 | 功能点 | 可能出现的bug/不满意原因 |
 |---|---|
-| 实时匹配高亮 | 正则稍微复杂一点，每敲一个键都要卡半秒才出结果；中文匹配高亮位置偏移，字没对齐 |
-| 分组高亮 | 嵌套分组颜色区分不出来；分组太多的时候高亮颜色循环重复，第6组和第1组一个颜色 |
-| 命名分组 | `(?<name>...)`这种语法有的浏览器不支持，但实验室里能跑，复制到项目里就报错；命名用了中文显示乱码 |
-| 语法树Canvas可视化 | 正则一长，树就画到画布外面去了，还得手动拖才能看到根节点；节点文字太小看不清，放大了又模糊 |
-| 语法自然语言解释(访问者模式) | 遇到环视断言解释得像天书；解释总是"匹配前一个字符"之类的废话，关键信息不说 |
-| 30+常用模板库 | 模板的正则版本老，PCRE和JS的差异没标注，复制到JS环境用不了；有些模板匹配范围太宽，明显不对的也通过 |
-| 性能基准(回溯检测) | 故意写了个灾难性回溯正则，页面直接卡死，连警告都没来得及弹；回溯步数显示的是个天文数字，没有直观感受 |
-| 替换预览($1/$&引用) | `$1`写成`\1`不提示错误，替换结果静默出错；替换文本里有`$`符号被误当引用，结果替换出奇怪的东西 |
-| 浏览器模式 | 输入超长文本后内存飙高，标签页直接崩溃；页面一刷新之前写的正则全没了 |
-| CLI模式 | 路径里有空格就解析出错；输出到文件编码不对，中文全变成问号 |
+| 递归下降解析器 | 嵌套分组太深时栈溢出崩溃；\b\B这种零宽断言解析不识别被当成普通字符 |
+| AST八种节点类型 | 有些转义组合如\p{L} Unicode属性不识别；八进制转义\0-7和反向引用\1冲突没处理好 |
+| NFA引擎手动实现 | 贪婪/非贪婪（.* vs .*?）优先级搞反导致匹配结果和JS原生不一致；回溯次数太多直接卡死 |
+| NFA每步状态转换 | 复杂正则状态爆炸，调试列表几万条根本翻不完；状态集合里的状态ID和实际正则片段对应不上 |
+| 访问者模式三种Visitor | 新增语法节点时三个Visitor都得改忘改一个就崩；新增Visitor时节点类型多了写起来累 |
+| 模板JSON动态加载 | Vite打包后hash路由的路径不对加载失败；分类太多加载时页面卡顿 |
+| base64url编解码 | 中文测试文本编码后超出URL长度限制；+和/没转成-和_导致链接打不开 |
+| 简易LZ77压缩 | 某些重复率低的正则+文本压缩后反而更长；滑窗太小压缩率不行太大又慢 |
+| SVG结构图布局 | 复杂正则节点重叠连线交叉像蜘蛛网；量词标注在节点上挡住了连线 |
+| 语法高亮颜色 | 色盲友好度差红绿色分不清；深色模式下颜色对比度不够看瞎眼 |
+| 括号匹配高亮 | 嵌套括号超过5层时高亮颜色重复；悬停时高亮有抖动闪烁 |
+| 实时匹配高亮 | 写正则写到一半语法错误时高亮全消失很吓人；大文本匹配慢到输一个字母卡一秒 |
+| 匹配序号标记 | 多匹配同时高亮时序号文字被背景挡住；分组子匹配和整个匹配的序号关系没标清 |
+| 标志位切换按钮 | 某些标志位组合（如/gy）一起开行为怪异没解释；开了m标志但^$行为没变用户以为坏了 |
+| 身份证号模板 | 只校验了位数没校验校验码；不支持港澳台通行证等其他证件号 |
+| 手机号模板 | 不支持16x/19x新号段；把座机号和手机号混在一起 |
+| 邮箱模板 | 不支持带+号的gmail变体；不支持中文域名邮箱 |
+| IP地址模板 | 不支持IPv6；010.0.0.1这种带前导零的没处理 |
+| localStorage保存 | 浏览器开了隐私模式保存失败没提示；清浏览器缓存全没了 |
+| 分享链接打开 | URL里特殊字符被浏览器二次编码/解码搞乱；链接太长QQ/微信里被截断 |
+
+---
+
+## 批次总结
+
+本批次共 20 道题，其中 1-4 号已各有独立仓库，5-20 号已在 DogFooding 仓库中创建对应 projects/lzy-00005 ~ lzy-00020 目录。
+
+- **题目状态**：5-20 号均已完成「需求改人话」+「三张扩展分析表」整合
+- **下一可用编号**：00021（见 batches/NEXT_ID）
+- **题目仓库**：https://github.com/Lizhaoyuan260619/solo-questions
+- **代码仓库**：https://github.com/Lizhaoyuan260619/DogFooding
